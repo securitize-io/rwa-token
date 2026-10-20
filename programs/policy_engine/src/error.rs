@@ -95,4 +95,6 @@ pub enum PolicyEngineErrors {
     LockIndexNotFound,
     #[msg("Counter Limit index not found")]
     CounterLimitIndexNotFound,
+    #[msg("Holding period must be nonnegative")]
+    InvalidLockPeriod,
 }

@@ -28,6 +28,16 @@ pub struct UnlockEvent {
 }
 
 #[event]
+pub struct IssuancesPrunedEvent {
+    pub mint: Pubkey,
+    pub identity: Pubkey,
+    pub timestamp: i64,
+    pub lock_time: i64,
+    pub removed_count: u64,
+    pub remaining_count: u64,
+}
+
+#[event]
 pub struct ChangedCounterLimitsEvent {
     pub mint: Pubkey,
     pub removed_counter_limits: Vec<CounterLimit>,

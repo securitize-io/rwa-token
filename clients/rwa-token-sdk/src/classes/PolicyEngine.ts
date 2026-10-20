@@ -16,8 +16,10 @@ import {
 	getDetachFromPolicyEngineIx,
 	getPolicyEnginePda,
 	getRemoveLockIx,
+	getPruneIssuancesIx,
 	getSetCountersIx,
 	RemoveLockArgs,
+	type PruneIssuancesArgs,
 	SetCountersArgs,
 } from "../policy-engine";
 import { type RwaClient } from "./Client";
@@ -113,6 +115,11 @@ export class PolicyEngine {
 			this.rwaClient.provider
 		);
 		return removeLockIx;	
+	}
+
+	/** Permanently prune matured records; requires the policy-engine authority's signature. */
+	async pruneIssuances(args: PruneIssuancesArgs): Promise<IxReturn> {
+		return getPruneIssuancesIx(args, this.rwaClient.provider);
 	}
 
 	/**

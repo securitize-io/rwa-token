@@ -1113,6 +1113,209 @@ export type PolicyEngine = {
       ]
     },
     {
+      "name": "pruneIssuances",
+      "docs": [
+        "Permanently remove issuances matured under the identity's current holding period.",
+        "Requires policy-engine authority approval. A later period increase cannot",
+        "restore pruned history or re-lock the removed issuances.",
+        "Emits an event only when records are removed."
+      ],
+      "discriminator": [
+        199,
+        99,
+        250,
+        172,
+        179,
+        197,
+        111,
+        37
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "policyEngine"
+          ]
+        },
+        {
+          "name": "assetMint",
+          "relations": [
+            "policyEngine",
+            "identityRegistry",
+            "trackerAccount"
+          ]
+        },
+        {
+          "name": "policyEngine",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "assetMint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "identityRegistry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "assetMint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                231,
+                75,
+                81,
+                14,
+                232,
+                84,
+                45,
+                52,
+                3,
+                211,
+                48,
+                13,
+                45,
+                218,
+                249,
+                1,
+                6,
+                163,
+                235,
+                112,
+                36,
+                214,
+                213,
+                157,
+                141,
+                10,
+                56,
+                4,
+                197,
+                233,
+                153,
+                177
+              ]
+            }
+          },
+          "relations": [
+            "identityAccount"
+          ]
+        },
+        {
+          "name": "identityAccount",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "identityRegistry"
+              },
+              {
+                "kind": "account",
+                "path": "identity_account.owner",
+                "account": "identityAccount"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                231,
+                75,
+                81,
+                14,
+                232,
+                84,
+                45,
+                52,
+                3,
+                211,
+                48,
+                13,
+                45,
+                218,
+                249,
+                1,
+                6,
+                163,
+                235,
+                112,
+                36,
+                214,
+                213,
+                157,
+                141,
+                10,
+                56,
+                4,
+                197,
+                233,
+                153,
+                177
+              ]
+            }
+          },
+          "relations": [
+            "trackerAccount"
+          ]
+        },
+        {
+          "name": "trackerAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "assetMint"
+              },
+              {
+                "kind": "account",
+                "path": "identityAccount"
+              }
+            ]
+          }
+        },
+        {
+          "name": "eventAuthority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "removeLock",
       "discriminator": [
         1,
@@ -1466,6 +1669,19 @@ export type PolicyEngine = {
       ]
     },
     {
+      "name": "issuancesPrunedEvent",
+      "discriminator": [
+        202,
+        51,
+        111,
+        1,
+        133,
+        104,
+        89,
+        16
+      ]
+    },
+    {
       "name": "lockEvent",
       "discriminator": [
         76,
@@ -1758,6 +1974,11 @@ export type PolicyEngine = {
       "code": 6062,
       "name": "counterLimitIndexNotFound",
       "msg": "Counter Limit index not found"
+    },
+    {
+      "code": 6063,
+      "name": "invalidLockPeriod",
+      "msg": "Holding period must be nonnegative"
     }
   ],
   "types": [
@@ -2379,6 +2600,38 @@ export type PolicyEngine = {
           {
             "name": "nonUsLockPeriod",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "issuancesPrunedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "identity",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "lockTime",
+            "type": "i64"
+          },
+          {
+            "name": "removedCount",
+            "type": "u64"
+          },
+          {
+            "name": "remainingCount",
+            "type": "u64"
           }
         ]
       }

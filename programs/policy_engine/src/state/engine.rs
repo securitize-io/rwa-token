@@ -3,7 +3,7 @@ use identity_registry::IdentityLevel;
 use num_enum::IntoPrimitive;
 use serde::{Deserialize, Serialize};
 
-use crate::{get_custom_error, PolicyEngineErrors};
+use crate::{get_custom_error, PolicyEngineErrors, US_COMPLIANCE_LEVEL};
 
 use super::TrackerAccount;
 
@@ -313,6 +313,15 @@ impl PolicyEngineAccount {
 
     pub fn change_issuance_policies(&mut self, issuance_policies: IssuancePolicies) {
         self.issuance_policies = issuance_policies;
+    }
+
+    /// Holding period for the identity's current country classification.
+    pub fn get_lock_period(&self, country: u8) -> i64 {
+        if self.mapping[country as usize] == US_COMPLIANCE_LEVEL {
+            self.issuance_policies.us_lock_period
+        } else {
+            self.issuance_policies.non_us_lock_period
+        }
     }
 
     pub fn get_policy_space(&self, hash: &str) -> Result<usize> {

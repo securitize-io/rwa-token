@@ -13,6 +13,7 @@ The IRP initializes an identity_registry PDA that manages a directory of wallet 
 ### Policy Engine
 An identity map is an enum defined by the creator. This enum categorizes various levels of identity verification that the creator can apply to users. For instance, a typical identity map might consist of levels such as "Unverified," "KYC", and "Accredited Investor." Each of these categories represents a distinct level of identity verification, allowing the system to appropriately categorize and handle users based on the extent of their identity validation. Verification levels refer to specific categories within the identity map that are defined by the creator. These levels represent different degrees of user identity verification and are used for tailoring access and permissions within the system. “Unverified”, “”KYC” and “”Accredited Investor” are each a verification level that can be attributed to a user via the identity account.
 
+The policy engine authority can call `prune_issuances` to remove matured issuance records and reduce memory use. Pruning uses the transfer hook's holding period rules, preserves balances and locks, and is irreversible.
 
 ### Build
 In order to build the programs, you must install solana v1.17.1 and run `./anchor build`. This will use the branch of anchor that has token 22 extensions until they are merged into anchor.

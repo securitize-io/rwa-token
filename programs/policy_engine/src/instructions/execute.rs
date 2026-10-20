@@ -1,5 +1,5 @@
 use crate::{
-    assert_is_transferring, verify_pda, PolicyEngineAccount, PolicyEngineErrors, Side, TrackerAccount, LOCKED_LEVEL, PLATFORM_WALLET_LEVEL, US_COMPLIANCE_LEVEL
+    assert_is_transferring, verify_pda, PolicyEngineAccount, PolicyEngineErrors, Side, TrackerAccount, LOCKED_LEVEL, PLATFORM_WALLET_LEVEL
 };
 use anchor_lang::prelude::*;
 use anchor_spl::{token_2022::spl_token_2022::extension::permanent_delegate::PermanentDelegate, token_interface::{get_mint_extension_data, Mint, TokenAccount}};
@@ -158,8 +158,7 @@ pub fn handler(ctx: Context<ExecuteTransferHook>, amount: u64) -> Result<()> {
                 PolicyEngineErrors::TokensLocked
             );
 
-            let country_compliance = policy_engine_account.mapping[source_identity_account.country as usize];
-            let hold_time = if country_compliance == US_COMPLIANCE_LEVEL { policy_engine_account.issuance_policies.us_lock_period } else { policy_engine_account.issuance_policies.non_us_lock_period };
+            let hold_time = policy_engine_account.get_lock_period(source_identity_account.country);
 
             let compliance_transferable_amount = source_tracker_account.get_compliance_transferable_balance(timestamp, hold_time, transferable_amount)?;
 

@@ -343,6 +343,41 @@ export interface RemoveLockArgs {
 	index: number;
 }
 
+/** Arguments for pruning an identity owner's matured issuance history. */
+export interface PruneIssuancesArgs {
+	authority: string;
+	assetMint: string;
+	/** Owner of the identity account, rather than an attached wallet. */
+	owner: string;
+}
+
+/**
+ * Permanently prune history under the current country mapping and holding period.
+ * Requires the policy-engine authority's signature. Increasing the holding period
+ * later cannot restore removed records. Account allocation and rent are preserved.
+ * Emits an event only when records are removed.
+ */
+export async function getPruneIssuancesIx(
+	args: PruneIssuancesArgs,
+	provider: Provider
+): Promise<IxReturn> {
+	const policyProgram = getPolicyEngineProgram(provider);
+	const ix = await policyProgram.methods
+		.pruneIssuances()
+		.accountsStrict({
+			authority: new PublicKey(args.authority),
+			assetMint: new PublicKey(args.assetMint),
+			policyEngine: getPolicyEnginePda(args.assetMint),
+			identityRegistry: getIdentityRegistryPda(args.assetMint),
+			identityAccount: getIdentityAccountPda(args.assetMint, args.owner),
+			trackerAccount: getTrackerAccountPda(args.assetMint, args.owner),
+			eventAuthority: getPolicyEngineEventAuthority(),
+			program: policyProgram.programId,
+		})
+		.instruction();
+	return { ixs: [ix], signers: [] };
+}
+
 export async function getRemoveLockIx(
 	args: RemoveLockArgs,
 	provider: Provider

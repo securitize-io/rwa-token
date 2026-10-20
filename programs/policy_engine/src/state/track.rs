@@ -78,6 +78,23 @@ impl TrackerAccount {
         Ok(())
     }
 
+    /// Permanently discard issuances that have matured under the current holding period.
+    /// Balance and explicit locks are independent of the issuance history.
+    pub fn prune_issuances(&mut self, current_timestamp: i64, lock_time: i64) -> Result<usize> {
+        require!(lock_time >= 0, PolicyEngineErrors::InvalidLockPeriod);
+        // Match the transfer check: all issuances are locked in this case,
+        // including backdated issuances with negative timestamps.
+        if lock_time > current_timestamp {
+            return Ok(0);
+        }
+        // The guards above guarantee 0 <= lock_time <= current_timestamp.
+        let cutoff = current_timestamp - lock_time;
+        let previous_len = self.issuances.len();
+        // Backdating means the vector need not be sorted by issue_time.
+        self.issuances.retain(|issuance| issuance.issue_time > cutoff);
+        Ok(previous_len - self.issuances.len())
+    }
+
     pub fn update_balance_burn(&mut self, amount: u64) -> Result<()> {
         self.total_amount = self.total_amount.checked_sub(amount).ok_or(PolicyEngineErrors::BalanceUnderflow)?;
         Ok(())
@@ -126,4 +143,138 @@ impl TrackerAccount {
         Ok(transferrable_amount - u64::min(locked_amount, transferrable_amount))
     }
 
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{PolicyEngineAccount, US_COMPLIANCE_LEVEL};
+
+    fn tracker() -> TrackerAccount {
+        let mut tracker = TrackerAccount::new(Pubkey::default(), Pubkey::default());
+        tracker.total_amount = 1_000;
+        tracker.issuances = [101, 99, 100, 250, 50]
+            .iter()
+            .map(|&issue_time| Issuance {
+                amount: 10,
+                issue_time,
+            })
+            .collect();
+        tracker.locks.push(Lock {
+            amount: 17,
+            release_time: i64::MAX,
+            reason: 1,
+            reason_string: "Independent lock".to_owned(),
+        });
+        tracker
+    }
+
+    #[test]
+    fn pruning_preserves_balance_locks_order_and_current_transferability() {
+        let mut tracker = tracker();
+        let mut expected = tracker.clone();
+        expected.issuances = vec![
+            Issuance {
+                amount: 10,
+                issue_time: 101,
+            },
+            Issuance {
+                amount: 10,
+                issue_time: 250,
+            },
+        ];
+        let transferable = tracker.get_transferable_balance(200).unwrap();
+        let compliant = tracker
+            .get_compliance_transferable_balance(200, 100, transferable)
+            .unwrap();
+
+        assert_eq!(tracker.prune_issuances(200, 100).unwrap(), 3);
+        assert_eq!(
+            tracker.try_to_vec().unwrap(),
+            expected.try_to_vec().unwrap()
+        );
+        assert_eq!(tracker.get_transferable_balance(200).unwrap(), transferable);
+        assert_eq!(
+            tracker
+                .get_compliance_transferable_balance(200, 100, transferable)
+                .unwrap(),
+            compliant
+        );
+        assert_eq!(tracker.prune_issuances(200, 100).unwrap(), 0);
+        assert_eq!(
+            tracker.try_to_vec().unwrap(),
+            expected.try_to_vec().unwrap()
+        );
+    }
+
+    #[test]
+    fn zero_period_removes_the_exact_boundary_but_preserves_future_issuances() {
+        let mut tracker = tracker();
+        assert_eq!(tracker.prune_issuances(100, 0).unwrap(), 3);
+        assert_eq!(
+            tracker
+                .issuances
+                .iter()
+                .map(|i| i.issue_time)
+                .collect::<Vec<_>>(),
+            vec![101, 250]
+        );
+    }
+
+    #[test]
+    fn period_exceeding_timestamp_preserves_even_negative_issuance_times() {
+        let mut tracker = tracker();
+        tracker.issuances[0].issue_time = -1_000;
+        let before = tracker.try_to_vec().unwrap();
+        assert_eq!(tracker.prune_issuances(100, 101).unwrap(), 0);
+        assert_eq!(tracker.try_to_vec().unwrap(), before);
+        assert_eq!(tracker.prune_issuances(i64::MIN, i64::MAX).unwrap(), 0);
+        assert_eq!(tracker.try_to_vec().unwrap(), before);
+    }
+
+    #[test]
+    fn negative_period_is_rejected_without_mutation() {
+        let mut tracker = tracker();
+        let before = tracker.try_to_vec().unwrap();
+        assert!(tracker.prune_issuances(200, -1).is_err());
+        assert_eq!(tracker.try_to_vec().unwrap(), before);
+    }
+
+    #[test]
+    fn cutoff_subtraction_is_safe_at_integer_boundaries() {
+        for (timestamp, lock_time, expected_times) in [
+            (0, 0, vec![1, i64::MAX]),
+            (i64::MAX, i64::MAX, vec![1, i64::MAX]),
+            (i64::MAX, 0, vec![]),
+        ] {
+            let mut tracker = tracker();
+            tracker.issuances = [i64::MIN, -1, 0, 1, i64::MAX]
+                .iter()
+                .map(|&issue_time| Issuance {
+                    amount: 10,
+                    issue_time,
+                })
+                .collect();
+            tracker.prune_issuances(timestamp, lock_time).unwrap();
+            assert_eq!(
+                tracker
+                    .issuances
+                    .iter()
+                    .map(|i| i.issue_time)
+                    .collect::<Vec<_>>(),
+                expected_times,
+            );
+        }
+    }
+
+    #[test]
+    fn holding_period_uses_current_country_mapping() {
+        let mut policy = PolicyEngineAccount::new(Pubkey::default(), Pubkey::default());
+        policy.issuance_policies.us_lock_period = 200;
+        policy.issuance_policies.non_us_lock_period = 100;
+        assert_eq!(policy.get_lock_period(7), 100);
+        policy.mapping[7] = US_COMPLIANCE_LEVEL;
+        assert_eq!(policy.get_lock_period(7), 200);
+        assert_eq!(policy.get_lock_period(8), 100);
+    }
 }

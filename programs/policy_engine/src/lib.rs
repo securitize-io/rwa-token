@@ -60,6 +60,14 @@ pub mod policy_engine {
         Ok(())
     }
 
+    /// Permanently remove issuances matured under the identity's current holding period.
+    /// Requires policy-engine authority approval. A later period increase cannot
+    /// restore pruned history or re-lock the removed issuances.
+    /// Emits an event only when records are removed.
+    pub fn prune_issuances(ctx: Context<PruneIssuancesAccounts>) -> Result<()> {
+        instructions::tracker::prune_issuances::handler(ctx)
+    }
+
     /// execute transfer hook
     #[interface(spl_transfer_hook_interface::execute)]
     pub fn execute_transaction(ctx: Context<ExecuteTransferHook>, amount: u64) -> Result<()> {
