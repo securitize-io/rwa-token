@@ -28,6 +28,12 @@ pub struct Issuance {
     pub issue_time: i64,
 }
 
+impl Issuance {
+    fn is_locked(&self, current_timestamp: i64, lock_time: i64) -> bool {
+        lock_time > current_timestamp || self.issue_time > current_timestamp - lock_time
+    }
+}
+
 #[derive(InitSpace, AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct Lock {
     pub amount: u64,
@@ -69,12 +75,23 @@ impl TrackerAccount {
         Ok(())
     }
 
-    pub fn new_issuance(&mut self, amount: u64, issue_time: i64) -> Result<()> {
-        self.issuances.push(Issuance {
-            amount,
-            issue_time,
-        });
-        self.total_amount = self.total_amount.checked_add(amount).ok_or(PolicyEngineErrors::BalanceOverflow)?;
+    /// Update the balance, keeping only issuance records that are still locked.
+    pub fn new_issuance(
+        &mut self,
+        amount: u64,
+        issue_time: i64,
+        current_timestamp: i64,
+        lock_time: i64,
+    ) -> Result<()> {
+        let total_amount = self.total_amount.checked_add(amount)
+            .ok_or(PolicyEngineErrors::BalanceOverflow)?;
+        // Prune before appending so expired records do not force the Vec to grow.
+        self.prune_issuances(current_timestamp, lock_time)?;
+        let issuance = Issuance { amount, issue_time };
+        if issuance.is_locked(current_timestamp, lock_time) {
+            self.issuances.push(issuance);
+        }
+        self.total_amount = total_amount;
         Ok(())
     }
 
@@ -87,11 +104,9 @@ impl TrackerAccount {
         if lock_time > current_timestamp {
             return Ok(0);
         }
-        // The guards above guarantee 0 <= lock_time <= current_timestamp.
-        let cutoff = current_timestamp - lock_time;
         let previous_len = self.issuances.len();
         // Backdating means the vector need not be sorted by issue_time.
-        self.issuances.retain(|issuance| issuance.issue_time > cutoff);
+        self.issuances.retain(|issuance| issuance.is_locked(current_timestamp, lock_time));
         Ok(previous_len - self.issuances.len())
     }
 
@@ -136,7 +151,7 @@ impl TrackerAccount {
     pub fn get_compliance_transferable_balance(&self, current_timestamp: i64, lock_time: i64, transferrable_amount: u64) -> Result<u64> {
         let mut locked_amount: u64 = 0;
         for issuance in self.issuances.iter() {            
-            if lock_time > current_timestamp || issuance.issue_time > (current_timestamp - lock_time) {
+            if issuance.is_locked(current_timestamp, lock_time) {
                 locked_amount += issuance.amount;
             }
         }
@@ -276,5 +291,54 @@ mod tests {
         policy.mapping[7] = US_COMPLIANCE_LEVEL;
         assert_eq!(policy.get_lock_period(7), 200);
         assert_eq!(policy.get_lock_period(8), 100);
+    }
+
+    #[test]
+    fn new_issuance_retains_only_locked_records_at_cutoff_and_integer_boundaries() {
+        for (timestamp, lock_time, issue_time, retained) in [
+            (200, 100, 99, false),
+            (200, 100, 100, false),
+            (200, 100, 101, true),
+            (100, 0, 100, false),
+            (100, 0, 101, true),
+            (100, 101, -1_000, true),
+            (i64::MIN, i64::MAX, i64::MIN, true),
+            (i64::MAX, i64::MAX, 0, false),
+            (i64::MAX, 0, i64::MAX, false),
+        ] {
+            let mut tracker = TrackerAccount::new(Pubkey::default(), Pubkey::default());
+            tracker.new_issuance(17, issue_time, timestamp, lock_time).unwrap();
+            assert_eq!(tracker.total_amount, 17);
+            assert_eq!(tracker.issuances.len(), usize::from(retained));
+            if retained {
+                assert_eq!(tracker.issuances[0].issue_time, issue_time);
+                assert_eq!(tracker.issuances[0].amount, 17);
+            }
+        }
+    }
+
+    #[test]
+    fn matured_new_issuance_prunes_old_history_and_preserves_locks_and_balance() {
+        let mut tracker = tracker();
+        let mut expected = tracker.clone();
+        expected.total_amount += 23;
+        expected.issuances = vec![
+            Issuance { amount: 10, issue_time: 101 },
+            Issuance { amount: 10, issue_time: 250 },
+        ];
+        tracker.new_issuance(23, 100, 200, 100).unwrap();
+        assert_eq!(tracker.try_to_vec().unwrap(), expected.try_to_vec().unwrap());
+    }
+
+    #[test]
+    fn invalid_new_issuance_does_not_prune_history_or_change_balance() {
+        let mut tracker = tracker();
+        let before = tracker.try_to_vec().unwrap();
+        assert!(tracker.new_issuance(1, 100, 200, -1).is_err());
+        assert_eq!(tracker.try_to_vec().unwrap(), before);
+        tracker.total_amount = u64::MAX;
+        let before = tracker.try_to_vec().unwrap();
+        assert!(tracker.new_issuance(1, 100, 200, 100).is_err());
+        assert_eq!(tracker.try_to_vec().unwrap(), before);
     }
 }

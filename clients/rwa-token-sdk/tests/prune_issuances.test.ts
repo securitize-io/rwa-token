@@ -19,10 +19,12 @@ describe("prune issuances", () => {
 		{ classification: "non-US", mapping: 0, retained: [0, 2] },
 		{ classification: "US", mapping: 11, retained: [0, 2, 3] },
 	])("uses the current $classification period and preserves balances and locks", async ({ mapping, retained }) => {
-		const fixture = await createPruningFixture({ us: 2 * DAY, nonUs: DAY });
+		// Keep all seed records active until the explicit pruning instruction is tested.
+		const fixture = await createPruningFixture({ us: 4 * DAY, nonUs: 4 * DAY });
 		const now = await fixture.timestamp();
 		// Unsorted, with wide margins around the cutoff; Rust tests cover exact equality.
 		await fixture.issue([now - DAY / 4, now - 3 * DAY, now + DAY, now - 3 * DAY / 2]);
+		await fixture.setPeriods({ us: 2 * DAY, nonUs: DAY });
 		const changeMapping = await fixture.client.policyEngine.changeMapping({
 			payer: fixture.payer.publicKey.toBase58(), authority: fixture.authority.publicKey.toBase58(),
 			assetMint: fixture.assetMint, mappingSource: [1], mappingValue: [mapping],
@@ -88,8 +90,9 @@ describe("prune issuances", () => {
 	}, 90_000);
 
 	test("rejects a negative effective period without modifying accounts", async () => {
-		const fixture = await createPruningFixture({ us: DAY, nonUs: -1 });
+		const fixture = await createPruningFixture();
 		await fixture.issue([await fixture.timestamp() - 2 * DAY]);
+		await fixture.setPeriods({ us: DAY, nonUs: -1 });
 		const before = await fixture.snapshot();
 		await expect(fixture.prune()).rejects.toMatchObject({
 			transactionError: { logs: expect.arrayContaining([expect.stringContaining("InvalidLockPeriod")]) },

@@ -131,7 +131,8 @@ describe("test suite to test tracker account is being updated correctly on trans
 		console.log(trackerAccount);
 
 		expect(trackerAccount?.totalAmount.eq(new BN(1000000))).toBe(true);
-		expect(trackerAccount?.issuances.length).toBe(1);
+		// A timestamp of zero is already matured under the default zero holding period.
+		expect(trackerAccount?.issuances).toHaveLength(0);
 	});
 
 	test("transfer tokens", async () => {

@@ -46,11 +46,14 @@ export async function createPruningFixture(periods = { us: DAY, nonUs: DAY }) {
 		});
 		await send(identity.ixs, [authority, ...identity.signers]);
 	}
-	const policies = await client.policyEngine.changeIssuancePolicies({
-		payer: payer.publicKey.toBase58(), authority: authority.publicKey.toBase58(), assetMint,
-		issuancePolicies: { disallowBackdating: false, maxSupply: new BN(0), usLockPeriod: new BN(periods.us), nonUsLockPeriod: new BN(periods.nonUs) },
-	});
-	await send(policies.ixs, [authority, ...policies.signers]);
+	const setPeriods = async (periods: { us: number; nonUs: number }, disallowBackdating = false) => {
+		const policies = await client.policyEngine.changeIssuancePolicies({
+			payer: payer.publicKey.toBase58(), authority: authority.publicKey.toBase58(), assetMint,
+			issuancePolicies: { disallowBackdating, maxSupply: new BN(0), usLockPeriod: new BN(periods.us), nonUsLockPeriod: new BN(periods.nonUs) },
+		});
+		await send(policies.ixs, [authority, ...policies.signers]);
+	};
+	await setPeriods(periods);
 	const tokenAddress = (owner: Keypair) => getAssociatedTokenAddressSync(mint, owner.publicKey, false, TOKEN_2022_PROGRAM_ID);
 	await send([sender, recipient].map(owner => createAssociatedTokenAccountIdempotentInstruction(
 		payer.publicKey, tokenAddress(owner), owner.publicKey, mint, TOKEN_2022_PROGRAM_ID,
@@ -83,6 +86,6 @@ export async function createPruningFixture(periods = { us: DAY, nonUs: DAY }) {
 	});
 	return {
 		connection, provider, client, payer, authority, sender, recipient, mint, assetMint,
-		send, issue, pruningInstructions, prune, timestamp, readTracker, trackerAddress, snapshot,
+		send, issue, pruningInstructions, prune, timestamp, readTracker, trackerAddress, snapshot, setPeriods,
 	};
 }

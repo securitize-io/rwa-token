@@ -59,6 +59,9 @@ export class AssetController {
 
 	/**
    * Asynchronously generates instructions to issue tokens.
+   * Issuance retains only history still locked under the current holding period.
+   * Matured new issuances update balances without storing a record; explicit locks are preserved.
+   * Pruned history cannot be restored by a later holding-period increase.
    * @param - {@link IssueTokenArgs}
    * @returns A Promise that resolves to the instructions to issue tokens.
    */
