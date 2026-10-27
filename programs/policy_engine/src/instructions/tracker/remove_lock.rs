@@ -1,4 +1,4 @@
-use crate::{Lock, PolicyEngineAccount, TrackerAccount, UnlockEvent};
+use crate::{PolicyEngineAccount, TrackerAccount, UnlockEvent};
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::Mint;
 use identity_registry::{IdentityAccount, IdentityRegistryAccount};
@@ -20,20 +20,13 @@ pub struct RemoveLockAccounts<'info> {
     pub identity_registry: Box<Account<'info, IdentityRegistryAccount>>,
     #[account(has_one = identity_registry)]
     pub identity_account: Box<Account<'info, IdentityAccount>>,
-    #[account(mut,
-        realloc = 8 + TrackerAccount::get_current_space(&tracker_account) - Lock::INIT_SPACE,
-        realloc::zero = false,
-        realloc::payer = payer,
-        has_one = identity_account
-    )]
+    // Keep the allocation and rent available for later locks and issuances.
+    #[account(mut, has_one = identity_account)]
     pub tracker_account: Box<Account<'info, TrackerAccount>>,
     pub system_program: Program<'info, System>,
 }
 
-pub fn handler(
-    ctx: Context<RemoveLockAccounts>,
-    index: u8
-) -> Result<()> {
+pub fn handler(ctx: Context<RemoveLockAccounts>, index: u8) -> Result<()> {
     let tracker_account: &mut TrackerAccount = &mut ctx.accounts.tracker_account;
 
     let lock = tracker_account.remove_lock(index as usize)?;

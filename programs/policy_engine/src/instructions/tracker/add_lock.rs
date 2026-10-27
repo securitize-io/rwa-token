@@ -21,7 +21,10 @@ pub struct AddLockAccounts<'info> {
     #[account(has_one = identity_registry)]
     pub identity_account: Box<Account<'info, IdentityAccount>>,
     #[account(mut,
-        realloc = 8 + TrackerAccount::get_current_space(&tracker_account) + Lock::INIT_SPACE,
+        // Reuse capacity paid for by earlier issuances and locks without refunding it.
+        realloc = tracker_account.to_account_info().data_len().max(
+            8 + tracker_account.get_current_space() + Lock::INIT_SPACE
+        ),
         realloc::zero = false,
         realloc::payer = payer,
         has_one = identity_account

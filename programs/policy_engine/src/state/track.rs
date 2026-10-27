@@ -3,6 +3,7 @@ use anchor_lang::prelude::*;
 use crate::{PolicyEngineErrors, Side};
 
 pub const MAX_TRANSFER_HISTORY: usize = 25;
+pub const MAX_LOCK_REASON_BYTES: usize = 64;
 
 #[account()]
 #[derive(InitSpace)]
@@ -39,7 +40,7 @@ pub struct Lock {
     pub amount: u64,
     pub release_time: i64,
     pub reason: u64,
-    #[max_len(64)]
+    #[max_len(MAX_LOCK_REASON_BYTES)]
     pub reason_string: String,
 }
 
@@ -57,7 +58,9 @@ impl TrackerAccount {
     }
 
     pub fn get_current_space(&self) -> usize {
-        TrackerAccount::INIT_SPACE + self.issuances.len() * Issuance::INIT_SPACE + self.locks.len() * Lock::INIT_SPACE
+        TrackerAccount::INIT_SPACE
+            + self.issuances.len() * Issuance::INIT_SPACE
+            + self.locks.len() * Lock::INIT_SPACE
     }
 
     /// for all timestamps, if timestamp is older than timestamp - max_timeframe. remove it,
@@ -115,7 +118,17 @@ impl TrackerAccount {
         Ok(())
     }
 
-    pub fn add_lock(&mut self, amount: u64, release_time: i64, reason: u64, reason_string: String) -> Result<()> {
+    pub fn add_lock(
+        &mut self,
+        amount: u64,
+        release_time: i64,
+        reason: u64,
+        reason_string: String,
+    ) -> Result<()> {
+        require!(
+            reason_string.len() <= MAX_LOCK_REASON_BYTES,
+            PolicyEngineErrors::InvalidInstructionData
+        );
         self.locks.push(Lock {
             amount,
             release_time,
@@ -182,6 +195,31 @@ mod tests {
             reason_string: "Independent lock".to_owned(),
         });
         tracker
+    }
+
+    #[test]
+    fn lock_reasons_accept_empty_and_up_to_64_utf8_bytes() {
+        for reason in [String::new(), "x".repeat(64), "é".repeat(32)] {
+            let mut tracker = TrackerAccount::new(Pubkey::default(), Pubkey::default());
+            tracker.add_lock(17, 123, 1, reason.clone()).unwrap();
+            assert_eq!(tracker.locks[0].reason_string, reason);
+            assert_eq!(
+                tracker.get_current_space(),
+                TrackerAccount::INIT_SPACE + Lock::INIT_SPACE
+            );
+            assert!(tracker.try_to_vec().unwrap().len() <= tracker.get_current_space());
+        }
+    }
+
+    #[test]
+    fn oversized_lock_reasons_are_rejected_without_mutation() {
+        for reason in ["x".repeat(65), "é".repeat(33), "x".repeat(128)] {
+            let mut tracker = tracker();
+            let before = tracker.try_to_vec().unwrap();
+            let error = tracker.add_lock(17, 123, 1, reason).unwrap_err();
+            assert_eq!(error, error!(PolicyEngineErrors::InvalidInstructionData));
+            assert_eq!(tracker.try_to_vec().unwrap(), before);
+        }
     }
 
     #[test]

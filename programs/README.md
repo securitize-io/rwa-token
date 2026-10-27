@@ -15,5 +15,7 @@ An identity map is an enum defined by the creator. This enum categorizes various
 
 Issuance retains only history still locked under the current holding period, reusing account space and preserving balances and locks. Already-matured new issuances update balances without storing a record. The policy engine authority can also call `prune_issuances` for maintenance. Both use the transfer hook's current holding period; removed history cannot be restored by increasing that period.
 
+Tracker allocation and rent are retained when pruning issuances or removing locks. Adding a lock reuses that capacity and only charges its payer for rent when more space is needed. Lock reasons are limited to 64 UTF-8 bytes.
+
 ### Build
 In order to build the programs, you must install solana v1.17.1 and run `./anchor build`. This will use the branch of anchor that has token 22 extensions until they are merged into anchor.
