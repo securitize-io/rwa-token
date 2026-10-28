@@ -158,12 +158,11 @@ describe("automatic issuance pruning", () => {
 		expect((await fixture.readTracker(fixture.recipient)).totalAmount.eq(transferable)).toBe(true);
 	}, 90_000);
 
-	test("rejects a negative holding period and rolls back the mint", async () => {
+	test("rejects configuring a negative holding period without changing minted balances", async () => {
 		const fixture = await createPruningFixture();
 		await fixture.issue([await fixture.timestamp()]);
-		await fixture.setPeriods({ us: DAY, nonUs: -1 });
 		const before = await fixture.snapshot();
-		await expect(fixture.issue([await fixture.timestamp()])).rejects.toMatchObject({
+		await expect(fixture.setPeriods({ us: DAY, nonUs: -1 })).rejects.toMatchObject({
 			transactionError: { logs: expect.arrayContaining([expect.stringContaining("InvalidLockPeriod")]) },
 		});
 		expect(await fixture.snapshot()).toEqual(before);

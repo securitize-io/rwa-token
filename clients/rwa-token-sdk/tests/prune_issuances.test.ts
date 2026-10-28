@@ -89,12 +89,11 @@ describe("prune issuances", () => {
 		expect(await fixture.snapshot()).toEqual(before);
 	}, 90_000);
 
-	test("rejects a negative effective period without modifying accounts", async () => {
+	test("rejects configuring a negative effective period without modifying accounts", async () => {
 		const fixture = await createPruningFixture();
 		await fixture.issue([await fixture.timestamp() - 2 * DAY]);
-		await fixture.setPeriods({ us: DAY, nonUs: -1 });
 		const before = await fixture.snapshot();
-		await expect(fixture.prune()).rejects.toMatchObject({
+		await expect(fixture.setPeriods({ us: DAY, nonUs: -1 })).rejects.toMatchObject({
 			transactionError: { logs: expect.arrayContaining([expect.stringContaining("InvalidLockPeriod")]) },
 		});
 		expect(await fixture.snapshot()).toEqual(before);

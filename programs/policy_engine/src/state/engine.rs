@@ -311,8 +311,13 @@ impl PolicyEngineAccount {
         }
     }
 
-    pub fn change_issuance_policies(&mut self, issuance_policies: IssuancePolicies) {
+    pub fn change_issuance_policies(&mut self, issuance_policies: IssuancePolicies) -> Result<()> {
+        require!(
+            issuance_policies.us_lock_period >= 0 && issuance_policies.non_us_lock_period >= 0,
+            PolicyEngineErrors::InvalidLockPeriod
+        );
         self.issuance_policies = issuance_policies;
+        Ok(())
     }
 
     /// Holding period for the identity's current country classification.
@@ -1319,4 +1324,55 @@ pub fn get_asset_controller_account_pda(asset_mint: Pubkey) -> Pubkey {
         &pubkey!("7tXjmbkZVY3Gmg9kDBebcNXT1yC5pyoxxXVLwdbv9tvP"),
     )
     .0
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn issuance_policies_accept_nonnegative_periods() {
+        for (us_lock_period, non_us_lock_period) in
+            [(0, 0), (0, 100), (100, 0), (100, 200), (i64::MAX, i64::MAX)]
+        {
+            let mut policy = PolicyEngineAccount::new(Pubkey::default(), Pubkey::default());
+            policy
+                .change_issuance_policies(IssuancePolicies {
+                    disallow_backdating: true,
+                    max_supply: 123,
+                    us_lock_period,
+                    non_us_lock_period,
+                })
+                .unwrap();
+
+            assert_eq!(policy.issuance_policies.us_lock_period, us_lock_period);
+            assert_eq!(
+                policy.issuance_policies.non_us_lock_period,
+                non_us_lock_period
+            );
+            assert!(policy.issuance_policies.disallow_backdating);
+            assert_eq!(policy.issuance_policies.max_supply, 123);
+        }
+    }
+
+    #[test]
+    fn invalid_issuance_periods_are_rejected_without_mutating_policy_state() {
+        let mut policy = PolicyEngineAccount::new(Pubkey::default(), Pubkey::default());
+        let before = policy.try_to_vec().unwrap();
+        for (us_lock_period, non_us_lock_period) in
+            [(-1, 0), (0, -1), (i64::MIN, 1), (1, i64::MIN), (-1, -1)]
+        {
+            let error = policy
+                .change_issuance_policies(IssuancePolicies {
+                    disallow_backdating: true,
+                    max_supply: 123,
+                    us_lock_period,
+                    non_us_lock_period,
+                })
+                .unwrap_err();
+
+            assert_eq!(error, error!(PolicyEngineErrors::InvalidLockPeriod));
+            assert_eq!(policy.try_to_vec().unwrap(), before);
+        }
+    }
 }

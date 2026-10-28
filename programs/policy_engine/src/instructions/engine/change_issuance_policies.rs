@@ -24,7 +24,7 @@ pub fn handler(
 
     ctx.accounts
         .policy_engine
-        .change_issuance_policies(issuance_policies.clone());
+        .change_issuance_policies(issuance_policies.clone())?;
 
     emit_cpi!(ChangedIssuancePoliciesEvent {
         mint: ctx.accounts.policy_engine.asset_mint,
