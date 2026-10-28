@@ -1,4 +1,4 @@
-use crate::{PolicyEngineAccount, TrackerAccount, ASSET_CONTROLLER_ID};
+use crate::{IssuancesPrunedEvent, PolicyEngineAccount, TrackerAccount, ASSET_CONTROLLER_ID};
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{transfer, Transfer};
 use anchor_spl::token_interface::{Mint, TokenAccount};
@@ -84,7 +84,11 @@ pub fn handler(
         .get_lock_period(ctx.accounts.identity_account.country);
     let tracker_account: &mut TrackerAccount = &mut ctx.accounts.destination_tracker_account;
 
-    tracker_account.new_issuance(amount, issuance_timestamp, timestamp, lock_time)?;
+    let previous_count = tracker_account.issuances.len();
+    let removed_count =
+        tracker_account.new_issuance(amount, issuance_timestamp, timestamp, lock_time)?;
+    // Match manual pruning: count retained old records, excluding the new issuance.
+    let remaining_count = previous_count - removed_count;
 
     if tracker_account.total_amount == amount {
         let changed_counters = ctx.accounts.policy_engine.increase_holders_count(
@@ -104,5 +108,17 @@ pub fn handler(
         Some(&tracker_account),
     )?;
     ctx.accounts.grow_tracker_if_needed()?;
+    if removed_count > 0 {
+        // Keep issuance accounts unchanged. Unlike emit_cpi!, these log events
+        // can be truncated by RPC providers; see the indexing note in programs/README.md.
+        emit!(IssuancesPrunedEvent {
+            mint: ctx.accounts.asset_mint.key(),
+            identity: ctx.accounts.identity_account.key(),
+            timestamp,
+            lock_time,
+            removed_count: removed_count as u64,
+            remaining_count: remaining_count as u64,
+        });
+    }
     Ok(issuance_timestamp)
 }

@@ -15,6 +15,8 @@ An identity map is an enum defined by the creator. This enum categorizes various
 
 Issuance retains only history still locked under the current holding period, reusing account space and preserving balances and locks. Already-matured new issuances update balances without storing a record. The policy engine authority can also call `prune_issuances` for maintenance. Both use the transfer hook's current holding period; removed history cannot be restored by increasing that period.
 
+Automatic pruning uses `emit!` to preserve the asset controller interface. Log truncation is not expected in the current issuance flow without complex CPIs; we may migrate to `emit_cpi!` if the flow becomes more complex.
+
 Tracker allocation and rent are retained when pruning issuances or removing locks. Adding a lock reuses that capacity and only charges its payer for rent when more space is needed. Lock reasons are limited to 64 UTF-8 bytes.
 
 ### Build

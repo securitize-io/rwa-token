@@ -79,23 +79,24 @@ impl TrackerAccount {
     }
 
     /// Update the balance, keeping only issuance records that are still locked.
+    /// Returns the number of existing records pruned before adding the new issuance.
     pub fn new_issuance(
         &mut self,
         amount: u64,
         issue_time: i64,
         current_timestamp: i64,
         lock_time: i64,
-    ) -> Result<()> {
+    ) -> Result<usize> {
         let total_amount = self.total_amount.checked_add(amount)
             .ok_or(PolicyEngineErrors::BalanceOverflow)?;
         // Prune before appending so expired records do not force the Vec to grow.
-        self.prune_issuances(current_timestamp, lock_time)?;
+        let removed_count = self.prune_issuances(current_timestamp, lock_time)?;
         let issuance = Issuance { amount, issue_time };
         if issuance.is_locked(current_timestamp, lock_time) {
             self.issuances.push(issuance);
         }
         self.total_amount = total_amount;
-        Ok(())
+        Ok(removed_count)
     }
 
     /// Permanently discard issuances that have matured under the current holding period.
@@ -345,7 +346,12 @@ mod tests {
             (i64::MAX, 0, i64::MAX, false),
         ] {
             let mut tracker = TrackerAccount::new(Pubkey::default(), Pubkey::default());
-            tracker.new_issuance(17, issue_time, timestamp, lock_time).unwrap();
+            assert_eq!(
+                tracker
+                    .new_issuance(17, issue_time, timestamp, lock_time)
+                    .unwrap(),
+                0
+            );
             assert_eq!(tracker.total_amount, 17);
             assert_eq!(tracker.issuances.len(), usize::from(retained));
             if retained {
@@ -364,7 +370,7 @@ mod tests {
             Issuance { amount: 10, issue_time: 101 },
             Issuance { amount: 10, issue_time: 250 },
         ];
-        tracker.new_issuance(23, 100, 200, 100).unwrap();
+        assert_eq!(tracker.new_issuance(23, 100, 200, 100).unwrap(), 3);
         assert_eq!(tracker.try_to_vec().unwrap(), expected.try_to_vec().unwrap());
     }
 
