@@ -1,4 +1,4 @@
-import { AnchorProvider, BN, Wallet } from "@coral-xyz/anchor";
+import { AnchorProvider, BN, Wallet } from "@anchor-lang/core";
 import {
 	getDisableMemoTransferIx,
 	getEnableMemoTransferIx,
@@ -15,7 +15,7 @@ import {
 import { expect, test, describe } from "vitest";
 import { type Config } from "../src/classes/types";
 import { RwaClient } from "../src/classes";
-import { getAccount, getAssociatedTokenAddressSync, getInterestBearingMintConfigState, getMemoTransfer, getMint, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
+import { getAccount, getAssociatedTokenAddressSync, getMemoTransfer, getMint, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 
 describe("extension tests", async () => {
 	let rwaClient: RwaClient;
@@ -77,7 +77,7 @@ describe("extension tests", async () => {
 		);
 		mint = setupIx.signers[0].publicKey.toString();
 		expect(txnId).toBeTruthy();
-		const mintData = await getMint(
+		const _mintData = await getMint(
 			rwaClient.provider.connection,
 			new PublicKey(mint),
 			undefined,
@@ -108,7 +108,7 @@ describe("extension tests", async () => {
 			TOKEN_2022_PROGRAM_ID
 		);
 		const memoTransfer = getMemoTransfer(
-			tokenAccount, 
+			tokenAccount,
 		);
 		expect(memoTransfer?.requireIncomingTransferMemos).toEqual(true);
 	});
@@ -137,7 +137,7 @@ describe("extension tests", async () => {
 		);
 		// Get memo Config for Mint Account
 		const memoMintConfig = getMemoTransfer(
-			mintAccount, 
+			mintAccount,
 		);
 		expect(memoMintConfig?.requireIncomingTransferMemos).toEqual(false);
 	});

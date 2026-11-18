@@ -1,6 +1,6 @@
-import { AnchorProvider, BN, Wallet } from "@coral-xyz/anchor";
+import { AnchorProvider, BN, Wallet } from "@anchor-lang/core";
 import {
-	type AttachPolicyArgs,
+
 	getTrackerAccount,
 	type IssueTokenArgs,
 	type SetupUserArgs,

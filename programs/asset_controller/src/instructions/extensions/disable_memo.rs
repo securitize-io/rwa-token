@@ -1,6 +1,8 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token_interface::{memo_transfer_disable, MemoTransfer, Mint, Token2022, TokenAccount};
-use spl_token_2022::extension::ExtensionType;
+use anchor_spl::token_2022::spl_token_2022::extension::ExtensionType;
+use anchor_spl::token_interface::{
+    memo_transfer_disable, MemoTransfer, Mint, Token2022, TokenAccount,
+};
 
 use crate::{AssetControllerAccount, ExtensionMetadataEvent};
 
@@ -36,7 +38,7 @@ impl<'info> DisableMemoTransfer<'info> {
             account: self.token_account.to_account_info(),
             owner: self.owner.to_account_info(),
         };
-        let cpi_ctx = CpiContext::new(self.token_program.to_account_info(), cpi_accounts);
+        let cpi_ctx = CpiContext::new(self.token_program.key(), cpi_accounts);
         memo_transfer_disable(cpi_ctx)?;
         Ok(())
     }

@@ -51,11 +51,7 @@ impl<'info> RevokeTokens<'info> {
             authority: self.asset_controller.to_account_info(),
             from: self.revoke_token_account.to_account_info(),
         };
-        let cpi_ctx = CpiContext::new_with_signer(
-            self.token_program.to_account_info(),
-            accounts,
-            signer_seeds,
-        );
+        let cpi_ctx = CpiContext::new_with_signer(self.token_program.key(), accounts, signer_seeds);
         burn(cpi_ctx, amount)?;
         Ok(())
     }
@@ -71,18 +67,15 @@ impl<'info> RevokeTokens<'info> {
             asset_controller: self.asset_controller.to_account_info(),
         };
 
-        let cpi_ctx = CpiContext::new_with_signer(
-            self.policy_engine_program.to_account_info(),
-            accounts,
-            signer_seeds,
-        );
+        let cpi_ctx =
+            CpiContext::new_with_signer(self.policy_engine_program.key(), accounts, signer_seeds);
         policy_engine::cpi::update_counters_on_burn(cpi_ctx, amount)?;
         Ok(())
     }
 }
 
 pub fn handler<'info>(
-    ctx: Context<'_, '_, '_, 'info, RevokeTokens<'info>>,
+    ctx: Context<'info, RevokeTokens<'info>>,
     amount: u64,
     reason: String,
 ) -> Result<()> {

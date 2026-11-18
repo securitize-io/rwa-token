@@ -18,7 +18,7 @@ idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
 localnet = []
 
 [dependencies]
-anchor-lang = { workspace = true, features = ["interface-instructions", "event-cpi"]  }
+anchor-lang = { workspace = true, features = ["event-cpi"]  }
 anchor-spl = { workspace = true, features = ["token_2022_extensions"] }
 rwa_utils = { workspace = true }
 identity_registry = { path = "../identity_registry", features = ["no-entrypoint"] }
@@ -26,5 +26,9 @@ identity_registry = { path = "../identity_registry", features = ["no-entrypoint"
 serde = "1.0.210"
 num_enum = "0.7.2"
 sha256 = "1.5.0"
-spl-tlv-account-resolution = "0.10.0"
-spl-transfer-hook-interface = { version = "0.10.0" }
+spl-tlv-account-resolution = "0.11.0"
+spl-transfer-hook-interface = "2.0.0"
+spl-discriminator = "0.5.2"
+
+[lints]
+workspace = true

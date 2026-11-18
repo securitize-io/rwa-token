@@ -1,4 +1,4 @@
-import { AnchorProvider, BN, Wallet } from "@coral-xyz/anchor";
+import { AnchorProvider, BN, Wallet } from "@anchor-lang/core";
 import {
 	ChangeCounterLimitsArgs,
 	ChangeCountersArgs,
@@ -72,7 +72,7 @@ describe("test additional policies", async () => {
 			[setup.payerKp, setup.authorityKp, ...setupUser1.signers],
 			{ skipPreflight: true }
 		);
-		
+
 		const setupUser2 = await rwaClient.identityRegistry.setupUserIxns({
 			payer: setup.payer.toString(),
 			owner: setup.user2.toString(),
@@ -104,7 +104,7 @@ describe("test additional policies", async () => {
 			[setup.payerKp, setup.authorityKp, ...setupUser3.signers],
 			{ skipPreflight: true }
 		);
-		
+
 	});
 
 	describe("test GroupedHolderLimit policy", async () => {
@@ -188,7 +188,7 @@ describe("test additional policies", async () => {
 		});
 
 		test("issue tokens to user 1", async () => {
-			
+
 			// Issue tokens to user1
 			const issueTokens = await rwaClient.assetController.issueTokenIxns({
 				authority: setup.authority.toString(),
@@ -215,7 +215,7 @@ describe("test additional policies", async () => {
 				decimals,
 				createTa: true,
 			}, rwaClient.provider);
-            
+
 			const txnId = await sendAndConfirmTransaction(
 				setup.provider.connection,
 				new Transaction().add(...transferTokensIxs),
@@ -231,7 +231,7 @@ describe("test additional policies", async () => {
 				decimals,
 				createTa: true,
 			}, rwaClient.provider);
-            
+
 			const txnId2 = await sendAndConfirmTransaction(
 				setup.provider.connection,
 				new Transaction().add(...transferTokensIxs2),
@@ -264,7 +264,7 @@ describe("test additional policies", async () => {
 				decimals,
 				createTa: true,
 			}, rwaClient.provider);
-            
+
 			await expect(sendAndConfirmTransaction(
 				setup.provider.connection,
 				new Transaction().add(...transferTokensIxs),
@@ -288,7 +288,7 @@ describe("test additional policies", async () => {
 				[setup.user2Kp],
 			);
 			expect(txnId).toBeTruthy();
-		});	
+		});
 
 		test("attempt to transfer back exceeding lower limit", async () => {
 			const transferTokensIxs = await getTransferTokensIxs({
@@ -320,6 +320,6 @@ describe("test additional policies", async () => {
 				new Transaction().add(...transferTokensIxs2),
 				[setup.user3Kp],
 			)).rejects.toThrowError(/custom program error: 0x1788/); // HolderLimitExceeded error
-		});	
+		});
 	});
 });

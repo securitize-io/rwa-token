@@ -31,7 +31,7 @@ pub struct CreateIdentityAccount<'info> {
         bump,
     )]
     pub wallet_identity: Box<Account<'info, WalletIdentity>>,
-    
+
     /// CHECK: hardcoded address check
     #[account(address = POLICY_ENGINE_ID)]
     pub policy_engine_program: UncheckedAccount<'info>,
@@ -51,16 +51,18 @@ pub fn handler(
     expiry: i64,
     country: u8,
 ) -> Result<()> {
-    ctx.accounts.identity_account.set_inner(IdentityAccount::new (
-        owner,
-        ctx.accounts.identity_registry.key(),
-        level,
-        expiry,
-        country,
-    ));
+    ctx.accounts
+        .identity_account
+        .set_inner(IdentityAccount::new(
+            owner,
+            ctx.accounts.identity_registry.key(),
+            level,
+            expiry,
+            country,
+        ));
     ctx.accounts.wallet_identity.identity_account = ctx.accounts.identity_account.key();
     ctx.accounts.wallet_identity.wallet = owner;
-    
+
     let signer_seeds = [
         &ctx.accounts.asset_mint.key().to_bytes()[..],
         &[ctx.accounts.identity_registry.bump][..],

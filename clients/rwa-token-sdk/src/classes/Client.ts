@@ -2,7 +2,7 @@ import { type Config } from "./types";
 import { AssetController } from "./AssetController";
 import { IdentityRegistry } from "./IdentityRegistry";
 import { PolicyEngine } from "./PolicyEngine";
-import { Provider } from "@coral-xyz/anchor";
+import { Provider } from "@anchor-lang/core";
 
 /**
  * Represents a client for interacting with Real World Assets (RWA).

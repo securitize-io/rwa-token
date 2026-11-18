@@ -30,10 +30,7 @@ pub struct RemoveLockAccounts<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn handler(
-    ctx: Context<RemoveLockAccounts>,
-    index: u8
-) -> Result<()> {
+pub fn handler(ctx: Context<RemoveLockAccounts>, index: u8) -> Result<()> {
     let tracker_account: &mut TrackerAccount = &mut ctx.accounts.tracker_account;
 
     let lock = tracker_account.remove_lock(index as usize)?;

@@ -61,11 +61,7 @@ impl<'info> IssueTokens<'info> {
             to: self.token_account.to_account_info(),
             authority: self.asset_controller.to_account_info(),
         };
-        let cpi_ctx = CpiContext::new_with_signer(
-            self.token_program.to_account_info(),
-            accounts,
-            signer_seeds,
-        );
+        let cpi_ctx = CpiContext::new_with_signer(self.token_program.key(), accounts, signer_seeds);
         mint_to(cpi_ctx, amount)?;
         Ok(())
     }
@@ -88,11 +84,8 @@ impl<'info> IssueTokens<'info> {
             system_program: self.system_program.to_account_info(),
         };
 
-        let cpi_ctx = CpiContext::new_with_signer(
-            self.policy_engine_program.to_account_info(),
-            accounts,
-            signer_seeds,
-        );
+        let cpi_ctx =
+            CpiContext::new_with_signer(self.policy_engine_program.key(), accounts, signer_seeds);
         let res = policy_engine::cpi::enforce_policy_issuance(cpi_ctx, amount, issuance_timestamp)?;
         Ok(res.get())
     }
@@ -111,8 +104,9 @@ pub fn handler(ctx: Context<IssueTokens>, amount: u64, issuance_timestamp: i64) 
         &get_bump_in_seed_form(&ctx.bumps.asset_controller),
     ];
     ctx.accounts.issue_tokens(amount, &[&signer_seeds])?;
-    let issuance_timestamp = ctx.accounts
-        .enforce_policy_issuance(amount, issuance_timestamp, &[&signer_seeds])?;
+    let issuance_timestamp =
+        ctx.accounts
+            .enforce_policy_issuance(amount, issuance_timestamp, &[&signer_seeds])?;
 
     emit_cpi!(IssueEvent {
         amount,

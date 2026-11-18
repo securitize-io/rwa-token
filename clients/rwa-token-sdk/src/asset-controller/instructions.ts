@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
+
+
 import {
 	ComputeBudgetProgram,
 	Keypair,
@@ -42,7 +42,7 @@ import {
 	assetControllerProgramId,
 	getAssetControllerEventAuthority,
 } from "./utils";
-import { type Provider, BN } from "@coral-xyz/anchor";
+import { type Provider, BN } from "@anchor-lang/core";
 
 /** Represents arguments for creating an on chain asset controller. */
 export type CreateAssetControllerIx = {
@@ -283,7 +283,7 @@ export async function getTransferTokensIxs(
 				programId: new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"),
 			}));
 		}
-	} catch (error) {
+	} catch {
 		if (args.createTa) {
 			ixs.push(createAssociatedTokenAccountInstruction(new PublicKey(args.from), getAssociatedTokenAddressSync(
 				new PublicKey(args.assetMint),
@@ -606,7 +606,7 @@ export async function getSeizeTokensIx(
 	provider: Provider
 ): Promise<TransactionInstruction[]> {
 	const assetProgram = getAssetControllerProgram(provider);
-	const remainingAccounts = [		
+	const remainingAccounts = [
 		{
 			pubkey: getExtraMetasListPda(args.assetMint),
 			isWritable: false,
@@ -661,8 +661,8 @@ export async function getSeizeTokensIx(
 			pubkey: getTrackerAccountPda(args.assetMint, args.to),
 			isWritable: true,
 			isSigner: false,
-		}, 
-		
+		},
+
 	];
 	const ixs: TransactionInstruction[] = [ComputeBudgetProgram.setComputeUnitLimit({units: 450_000})];
 	const ix = await assetProgram.methods

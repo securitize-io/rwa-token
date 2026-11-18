@@ -1,13 +1,7 @@
-/**
- * Program IDL in camelCase format in order to be used in JS/TS.
- *
- * Note that this is only a type helper and is not the actual IDL. The original
- * IDL can be found at `target/idl/identity_registry.json`.
- */
-export type IdentityRegistry = {
+{
   "address": "GZsnjqT3c5zbHqsctrJ4EG4rbEfo7ZXyyUG7aDJNmxfA",
   "metadata": {
-    "name": "identityRegistry",
+    "name": "identity_registry",
     "version": "0.0.1",
     "spec": "0.1.0",
     "description": "The Identity Registry Program (IRP) manages the configurable issuance and tracking of on-chain identities to enable on-chain transaction permissioning.",
@@ -15,7 +9,7 @@ export type IdentityRegistry = {
   },
   "instructions": [
     {
-      "name": "addLevelToIdentityAccount",
+      "name": "add_level_to_identity_account",
       "docs": [
         "add level to identity account"
       ],
@@ -40,74 +34,48 @@ export type IdentityRegistry = {
           "signer": true
         },
         {
-          "name": "identityRegistry"
+          "name": "identity_registry"
         },
         {
-          "name": "identityAccount",
+          "name": "identity_account",
           "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "account",
-                "path": "identityRegistry"
+                "path": "identity_registry"
               },
               {
                 "kind": "account",
                 "path": "identity_account.owner",
-                "account": "identityAccount"
+                "account": "IdentityAccount"
               }
             ]
           }
         },
         {
-          "name": "systemProgram",
+          "name": "system_program",
           "address": "11111111111111111111111111111111"
         },
         {
-          "name": "policyEngineProgram",
+          "name": "policy_engine_program",
           "address": "FsE8mCJyvgMzqJbfHbJQm3iuf3cRZC6n2vZi1Q8rQCy2"
         },
         {
-          "name": "policyEngine",
+          "name": "policy_engine",
           "writable": true
         },
         {
-          "name": "trackerAccount"
+          "name": "tracker_account"
         },
         {
-          "name": "assetMint",
+          "name": "asset_mint",
           "relations": [
-            "identityRegistry"
+            "identity_registry"
           ]
         },
         {
-          "name": "eventAuthority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -125,13 +93,13 @@ export type IdentityRegistry = {
           }
         },
         {
-          "name": "enforceLimits",
+          "name": "enforce_limits",
           "type": "bool"
         }
       ]
     },
     {
-      "name": "attachWalletToIdentity",
+      "name": "attach_wallet_to_identity",
       "docs": [
         "attach token account to identity account"
       ],
@@ -156,23 +124,23 @@ export type IdentityRegistry = {
           "signer": true
         },
         {
-          "name": "identityAccount",
+          "name": "identity_account",
           "writable": true
         },
         {
-          "name": "identityRegistry",
+          "name": "identity_registry",
           "relations": [
-            "identityAccount"
+            "identity_account"
           ]
         },
         {
-          "name": "assetMint",
+          "name": "asset_mint",
           "relations": [
-            "identityRegistry"
+            "identity_registry"
           ]
         },
         {
-          "name": "walletIdentity",
+          "name": "wallet_identity",
           "writable": true,
           "pda": {
             "seeds": [
@@ -182,43 +150,17 @@ export type IdentityRegistry = {
               },
               {
                 "kind": "account",
-                "path": "assetMint"
+                "path": "asset_mint"
               }
             ]
           }
         },
         {
-          "name": "systemProgram",
+          "name": "system_program",
           "address": "11111111111111111111111111111111"
         },
         {
-          "name": "eventAuthority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -232,7 +174,7 @@ export type IdentityRegistry = {
       ]
     },
     {
-      "name": "changeCountry",
+      "name": "change_country",
       "discriminator": [
         208,
         227,
@@ -253,70 +195,44 @@ export type IdentityRegistry = {
           "signer": true
         },
         {
-          "name": "identityRegistry"
+          "name": "identity_registry"
         },
         {
-          "name": "identityAccount",
+          "name": "identity_account",
           "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "account",
-                "path": "identityRegistry"
+                "path": "identity_registry"
               },
               {
                 "kind": "account",
                 "path": "identity_account.owner",
-                "account": "identityAccount"
+                "account": "IdentityAccount"
               }
             ]
           }
         },
         {
-          "name": "policyEngineProgram",
+          "name": "policy_engine_program",
           "address": "FsE8mCJyvgMzqJbfHbJQm3iuf3cRZC6n2vZi1Q8rQCy2"
         },
         {
-          "name": "policyEngine",
+          "name": "policy_engine",
           "writable": true
         },
         {
-          "name": "trackerAccount"
+          "name": "tracker_account"
         },
         {
-          "name": "assetMint",
+          "name": "asset_mint",
           "relations": [
-            "identityRegistry"
+            "identity_registry"
           ]
         },
         {
-          "name": "eventAuthority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -324,17 +240,17 @@ export type IdentityRegistry = {
       ],
       "args": [
         {
-          "name": "newCountry",
+          "name": "new_country",
           "type": "u8"
         },
         {
-          "name": "enforceLimits",
+          "name": "enforce_limits",
           "type": "bool"
         }
       ]
     },
     {
-      "name": "createIdentityAccount",
+      "name": "create_identity_account",
       "docs": [
         "identity functions",
         "create identity account"
@@ -360,16 +276,16 @@ export type IdentityRegistry = {
           "signer": true
         },
         {
-          "name": "identityRegistry"
+          "name": "identity_registry"
         },
         {
-          "name": "identityAccount",
+          "name": "identity_account",
           "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "account",
-                "path": "identityRegistry"
+                "path": "identity_registry"
               },
               {
                 "kind": "arg",
@@ -379,7 +295,7 @@ export type IdentityRegistry = {
           }
         },
         {
-          "name": "walletIdentity",
+          "name": "wallet_identity",
           "writable": true,
           "pda": {
             "seeds": [
@@ -390,54 +306,28 @@ export type IdentityRegistry = {
               {
                 "kind": "account",
                 "path": "identity_registry.asset_mint",
-                "account": "identityRegistryAccount"
+                "account": "IdentityRegistryAccount"
               }
             ]
           }
         },
         {
-          "name": "policyEngineProgram",
+          "name": "policy_engine_program",
           "address": "FsE8mCJyvgMzqJbfHbJQm3iuf3cRZC6n2vZi1Q8rQCy2"
         },
         {
-          "name": "trackerAccount",
+          "name": "tracker_account",
           "writable": true
         },
         {
-          "name": "assetMint"
+          "name": "asset_mint"
         },
         {
-          "name": "systemProgram",
+          "name": "system_program",
           "address": "11111111111111111111111111111111"
         },
         {
-          "name": "eventAuthority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -463,7 +353,7 @@ export type IdentityRegistry = {
       ]
     },
     {
-      "name": "createIdentityRegistry",
+      "name": "create_identity_registry",
       "docs": [
         "registry functions",
         "create identity registry"
@@ -489,22 +379,22 @@ export type IdentityRegistry = {
           "signer": true
         },
         {
-          "name": "assetMint"
+          "name": "asset_mint"
         },
         {
-          "name": "identityRegistryAccount",
+          "name": "identity_registry_account",
           "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "account",
-                "path": "assetMint"
+                "path": "asset_mint"
               }
             ]
           }
         },
         {
-          "name": "systemProgram",
+          "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
       ],
@@ -516,7 +406,7 @@ export type IdentityRegistry = {
       ]
     },
     {
-      "name": "detachWalletFromIdentity",
+      "name": "detach_wallet_from_identity",
       "docs": [
         "detach token account from identity account"
       ],
@@ -542,30 +432,30 @@ export type IdentityRegistry = {
           "signer": true
         },
         {
-          "name": "walletIdentity",
+          "name": "wallet_identity",
           "writable": true
         },
         {
-          "name": "identityAccount",
+          "name": "identity_account",
           "writable": true,
           "relations": [
-            "walletIdentity"
+            "wallet_identity"
           ]
         },
         {
-          "name": "identityRegistry",
+          "name": "identity_registry",
           "relations": [
-            "identityAccount"
+            "identity_account"
           ]
         },
         {
-          "name": "tokenAccount",
+          "name": "token_account",
           "pda": {
             "seeds": [
               {
                 "kind": "account",
                 "path": "wallet_identity.wallet",
-                "account": "walletIdentity"
+                "account": "WalletIdentity"
               },
               {
                 "kind": "const",
@@ -606,7 +496,7 @@ export type IdentityRegistry = {
               },
               {
                 "kind": "account",
-                "path": "assetMint"
+                "path": "asset_mint"
               }
             ],
             "program": {
@@ -649,39 +539,13 @@ export type IdentityRegistry = {
           }
         },
         {
-          "name": "assetMint",
+          "name": "asset_mint",
           "relations": [
-            "identityRegistry"
+            "identity_registry"
           ]
         },
         {
-          "name": "eventAuthority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -690,7 +554,7 @@ export type IdentityRegistry = {
       "args": []
     },
     {
-      "name": "removeLevelFromIdentityAccount",
+      "name": "remove_level_from_identity_account",
       "docs": [
         "remove level from identity account"
       ],
@@ -715,71 +579,45 @@ export type IdentityRegistry = {
           "signer": true
         },
         {
-          "name": "identityRegistry"
+          "name": "identity_registry"
         },
         {
-          "name": "identityAccount",
+          "name": "identity_account",
           "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "account",
-                "path": "identityRegistry"
+                "path": "identity_registry"
               },
               {
                 "kind": "account",
                 "path": "identity_account.owner",
-                "account": "identityAccount"
+                "account": "IdentityAccount"
               }
             ]
           }
         },
         {
-          "name": "systemProgram",
+          "name": "system_program",
           "address": "11111111111111111111111111111111"
         },
         {
-          "name": "policyEngineProgram",
+          "name": "policy_engine_program",
           "address": "FsE8mCJyvgMzqJbfHbJQm3iuf3cRZC6n2vZi1Q8rQCy2"
         },
         {
-          "name": "policyEngine",
+          "name": "policy_engine",
           "writable": true
         },
         {
-          "name": "trackerAccount"
+          "name": "tracker_account"
         },
         {
-          "name": "assetMint"
+          "name": "asset_mint"
         },
         {
-          "name": "eventAuthority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -791,13 +629,13 @@ export type IdentityRegistry = {
           "type": "bytes"
         },
         {
-          "name": "enforceLimits",
+          "name": "enforce_limits",
           "type": "bool"
         }
       ]
     },
     {
-      "name": "revokeIdentityAccount",
+      "name": "revoke_identity_account",
       "docs": [
         "revoke user identity account by closing account"
       ],
@@ -822,39 +660,39 @@ export type IdentityRegistry = {
           "signer": true
         },
         {
-          "name": "identityRegistry",
+          "name": "identity_registry",
           "pda": {
             "seeds": [
               {
                 "kind": "account",
                 "path": "identity_registry.asset_mint",
-                "account": "identityRegistryAccount"
+                "account": "IdentityRegistryAccount"
               }
             ]
           }
         },
         {
-          "name": "identityAccount",
+          "name": "identity_account",
           "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "account",
-                "path": "identityRegistry"
+                "path": "identity_registry"
               },
               {
                 "kind": "account",
                 "path": "identity_account.owner",
-                "account": "identityAccount"
+                "account": "IdentityAccount"
               }
             ]
           },
           "relations": [
-            "walletIdentity"
+            "wallet_identity"
           ]
         },
         {
-          "name": "walletIdentity",
+          "name": "wallet_identity",
           "writable": true,
           "pda": {
             "seeds": [
@@ -865,50 +703,24 @@ export type IdentityRegistry = {
               {
                 "kind": "account",
                 "path": "identity_registry.asset_mint",
-                "account": "identityRegistryAccount"
+                "account": "IdentityRegistryAccount"
               }
             ]
           }
         },
         {
-          "name": "policyEngineProgram",
+          "name": "policy_engine_program",
           "address": "FsE8mCJyvgMzqJbfHbJQm3iuf3cRZC6n2vZi1Q8rQCy2"
         },
         {
-          "name": "trackerAccount",
+          "name": "tracker_account",
           "writable": true
         },
         {
-          "name": "assetMint"
+          "name": "asset_mint"
         },
         {
-          "name": "eventAuthority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -924,7 +736,7 @@ export type IdentityRegistry = {
   ],
   "accounts": [
     {
-      "name": "identityAccount",
+      "name": "IdentityAccount",
       "discriminator": [
         194,
         90,
@@ -937,7 +749,7 @@ export type IdentityRegistry = {
       ]
     },
     {
-      "name": "identityRegistryAccount",
+      "name": "IdentityRegistryAccount",
       "discriminator": [
         154,
         254,
@@ -950,7 +762,7 @@ export type IdentityRegistry = {
       ]
     },
     {
-      "name": "walletIdentity",
+      "name": "WalletIdentity",
       "discriminator": [
         101,
         142,
@@ -965,7 +777,7 @@ export type IdentityRegistry = {
   ],
   "events": [
     {
-      "name": "addLevelsToIdentityEvent",
+      "name": "AddLevelsToIdentityEvent",
       "discriminator": [
         106,
         66,
@@ -978,7 +790,7 @@ export type IdentityRegistry = {
       ]
     },
     {
-      "name": "attachWalletToIdentityEvent",
+      "name": "AttachWalletToIdentityEvent",
       "discriminator": [
         16,
         40,
@@ -991,7 +803,7 @@ export type IdentityRegistry = {
       ]
     },
     {
-      "name": "changeCountryEvent",
+      "name": "ChangeCountryEvent",
       "discriminator": [
         157,
         201,
@@ -1004,7 +816,7 @@ export type IdentityRegistry = {
       ]
     },
     {
-      "name": "createdIdentityEvent",
+      "name": "CreatedIdentityEvent",
       "discriminator": [
         86,
         208,
@@ -1017,7 +829,7 @@ export type IdentityRegistry = {
       ]
     },
     {
-      "name": "detachWalletFromIdentityEvent",
+      "name": "DetachWalletFromIdentityEvent",
       "discriminator": [
         198,
         117,
@@ -1030,7 +842,7 @@ export type IdentityRegistry = {
       ]
     },
     {
-      "name": "removeLevelsFromIdentityEvent",
+      "name": "RemoveLevelsFromIdentityEvent",
       "discriminator": [
         41,
         204,
@@ -1043,7 +855,7 @@ export type IdentityRegistry = {
       ]
     },
     {
-      "name": "removedIdentityEvent",
+      "name": "RemovedIdentityEvent",
       "discriminator": [
         210,
         181,
@@ -1059,63 +871,63 @@ export type IdentityRegistry = {
   "errors": [
     {
       "code": 6000,
-      "name": "levelAlreadyPresent",
+      "name": "LevelAlreadyPresent",
       "msg": "Identity level has already been attached to user"
     },
     {
       "code": 6001,
-      "name": "maxLevelsExceeded",
+      "name": "MaxLevelsExceeded",
       "msg": "Number of levels that can be attached to user has been exceeded"
     },
     {
       "code": 6002,
-      "name": "levelNotFound",
+      "name": "LevelNotFound",
       "msg": "Level to be removed not found"
     },
     {
       "code": 6003,
-      "name": "unauthorizedSigner",
+      "name": "UnauthorizedSigner",
       "msg": "Unauthorized signer"
     },
     {
       "code": 6004,
-      "name": "limitReached",
+      "name": "LimitReached",
       "msg": "Identity limit reached"
     },
     {
       "code": 6005,
-      "name": "tokenAccountAlreadyInitialized",
+      "name": "TokenAccountAlreadyInitialized",
       "msg": "Token account is already initialized"
     },
     {
       "code": 6006,
-      "name": "identityCreationRequired",
+      "name": "IdentityCreationRequired",
       "msg": "Identity creation must be enforced for this feature"
     },
     {
       "code": 6007,
-      "name": "multipleWalletsNotAllowed",
+      "name": "MultipleWalletsNotAllowed",
       "msg": "Multiple wallets are not allowed"
     },
     {
       "code": 6008,
-      "name": "walletAlreadyInUse",
+      "name": "WalletAlreadyInUse",
       "msg": "Wallet already in use"
     },
     {
       "code": 6009,
-      "name": "invalidLevel",
+      "name": "InvalidLevel",
       "msg": "Invalid level"
     },
     {
       "code": 6010,
-      "name": "tokenAccountNotEmpty",
+      "name": "TokenAccountNotEmpty",
       "msg": "Token account is not empty"
     }
   ],
   "types": [
     {
-      "name": "addLevelsToIdentityEvent",
+      "name": "AddLevelsToIdentityEvent",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1145,7 +957,7 @@ export type IdentityRegistry = {
       }
     },
     {
-      "name": "attachWalletToIdentityEvent",
+      "name": "AttachWalletToIdentityEvent",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1169,7 +981,7 @@ export type IdentityRegistry = {
       }
     },
     {
-      "name": "changeCountryEvent",
+      "name": "ChangeCountryEvent",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1193,7 +1005,7 @@ export type IdentityRegistry = {
       }
     },
     {
-      "name": "createdIdentityEvent",
+      "name": "CreatedIdentityEvent",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1221,7 +1033,7 @@ export type IdentityRegistry = {
       }
     },
     {
-      "name": "detachWalletFromIdentityEvent",
+      "name": "DetachWalletFromIdentityEvent",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1245,7 +1057,7 @@ export type IdentityRegistry = {
       }
     },
     {
-      "name": "identityAccount",
+      "name": "IdentityAccount",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1257,7 +1069,7 @@ export type IdentityRegistry = {
             "type": "u8"
           },
           {
-            "name": "identityRegistry",
+            "name": "identity_registry",
             "docs": [
               "identity registry to which the account belongs"
             ],
@@ -1271,7 +1083,7 @@ export type IdentityRegistry = {
             "type": "pubkey"
           },
           {
-            "name": "numWallets",
+            "name": "num_wallets",
             "docs": [
               "number of wallets attached to this identity account"
             ],
@@ -1289,7 +1101,7 @@ export type IdentityRegistry = {
             "type": {
               "vec": {
                 "defined": {
-                  "name": "identityLevel"
+                  "name": "IdentityLevel"
                 }
               }
             }
@@ -1298,7 +1110,7 @@ export type IdentityRegistry = {
       }
     },
     {
-      "name": "identityLevel",
+      "name": "IdentityLevel",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1314,7 +1126,7 @@ export type IdentityRegistry = {
       }
     },
     {
-      "name": "identityRegistryAccount",
+      "name": "IdentityRegistryAccount",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1327,7 +1139,7 @@ export type IdentityRegistry = {
             "type": "u8"
           },
           {
-            "name": "assetMint",
+            "name": "asset_mint",
             "docs": [
               "corresponding asset mint"
             ],
@@ -1344,7 +1156,7 @@ export type IdentityRegistry = {
       }
     },
     {
-      "name": "removeLevelsFromIdentityEvent",
+      "name": "RemoveLevelsFromIdentityEvent",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1368,7 +1180,7 @@ export type IdentityRegistry = {
       }
     },
     {
-      "name": "removedIdentityEvent",
+      "name": "RemovedIdentityEvent",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1396,12 +1208,12 @@ export type IdentityRegistry = {
       }
     },
     {
-      "name": "walletIdentity",
+      "name": "WalletIdentity",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "identityAccount",
+            "name": "identity_account",
             "type": "pubkey"
           },
           {
@@ -1412,4 +1224,4 @@ export type IdentityRegistry = {
       }
     }
   ]
-};
+}

@@ -1,7 +1,7 @@
 
-import { AnchorProvider, BN, Wallet } from "@coral-xyz/anchor";
+import { AnchorProvider, BN, Wallet } from "@anchor-lang/core";
 import {
-	getPolicyEnginePda, getPolicyEngineProgram, getTransferTokensIxs, 
+	 getTransferTokensIxs,
 	RwaClient,
 } from "../src";
 import { setupTests } from "./setup";
@@ -59,7 +59,7 @@ describe("test policy setup", async () => {
 			payer: setup.payer.toString(),
 			assetMint: mint,
 			authority: setup.authority.toString(),
-			
+
 			identityFilter: {
 				simple: [ {
 					tuple: [
@@ -70,7 +70,7 @@ describe("test policy setup", async () => {
 						},
 						{
 							or: {}
-						}, 
+						},
 						{
 							target: {bothOr: {}},
 							mode: {include: {}},
@@ -92,7 +92,7 @@ describe("test policy setup", async () => {
 			payer: setup.payer.toString(),
 			assetMint: mint,
 			authority: setup.authority.toString(),
-			
+
 			identityFilter: {
 				simple: [ {
 					single: [

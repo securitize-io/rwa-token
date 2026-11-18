@@ -1,4 +1,4 @@
-import { Provider } from "@coral-xyz/anchor";
+import { Provider } from "@anchor-lang/core";
 import { type PolicyEngineAccount, type  TrackerAccount } from "./types";
 import { getPolicyEnginePda, getPolicyEngineProgram, getTrackerAccountPda } from "./utils";
 import { GetProgramAccountsFilter, PublicKey } from "@solana/web3.js";

@@ -1,4 +1,4 @@
-import { Provider } from "@coral-xyz/anchor";
+import { Provider } from "@anchor-lang/core";
 import { type AssetControllerAccount } from "./types";
 import {
 	getAssetControllerPda,

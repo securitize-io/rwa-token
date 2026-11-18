@@ -11,7 +11,7 @@ import {
 	getWalletIdentityAccountPda,
 	getIdentityRegistryEventAuthority,
 } from "./utils";
-import { BN, Provider } from "@coral-xyz/anchor";
+import { BN, Provider } from "@anchor-lang/core";
 import { getPolicyEnginePda, getTrackerAccountPda, policyEngineProgramId } from "../policy-engine/utils";
 import { getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 
@@ -147,7 +147,7 @@ export type ChangeCountryArgs = {
 	country: number;
 	ignorePolicy?: boolean;
   } & CommonArgs;
-  
+
 /**
  * Builds the transaction instruction to add a level to identity account
  * @param args - {@link AddLevelToIdentityAccountArgs}.

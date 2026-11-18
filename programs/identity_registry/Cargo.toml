@@ -24,3 +24,6 @@ localnet = []
 anchor-lang = { workspace = true, features = ["init-if-needed", "event-cpi"] }
 anchor-spl = { workspace = true }
 rwa_utils = { workspace = true }
+
+[lints]
+workspace = true

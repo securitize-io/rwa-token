@@ -284,10 +284,7 @@ pub fn get_policy_engine_pda(asset_mint: Pubkey) -> Pubkey {
 
 impl PolicyEngineAccount {
     pub const VERSION: u8 = 1;
-    pub fn new(
-        authority: Pubkey,
-        asset_mint: Pubkey,
-    ) -> Self {
+    pub fn new(authority: Pubkey, asset_mint: Pubkey) -> Self {
         Self {
             version: Self::VERSION,
             authority,
@@ -391,61 +388,63 @@ impl PolicyEngineAccount {
         for policy in self.policies.iter() {
             match &policy.policy_type {
                 PolicyType::IdentityApproval => {
-                    if self.enforce_filters_single(
-                        identity,
-                        country,
-                        &policy.identity_filter,
-                    ).is_err() {
-                        get_custom_error(policy.custom_error, PolicyEngineErrors::IdentityFilterFailed)?;
+                    if self
+                        .enforce_filters_single(identity, country, &policy.identity_filter)
+                        .is_err()
+                    {
+                        get_custom_error(
+                            policy.custom_error,
+                            PolicyEngineErrors::IdentityFilterFailed,
+                        )?;
                     }
                 }
                 PolicyType::MaxBalance { limit } => {
                     if self
-                        .enforce_filters_single(
-                            identity,
-                            country,
-                            &policy.identity_filter,
-                        )
+                        .enforce_filters_single(identity, country, &policy.identity_filter)
                         .is_ok()
                     {
                         if let Some(dst_tracker) = tracker_account {
                             if dst_tracker.total_amount > *limit {
-                                get_custom_error(policy.custom_error, PolicyEngineErrors::MaxBalanceExceeded)?;
+                                get_custom_error(
+                                    policy.custom_error,
+                                    PolicyEngineErrors::MaxBalanceExceeded,
+                                )?;
                             }
                         }
                     }
                 }
                 PolicyType::MinBalance { limit } => {
                     if self
-                        .enforce_filters_single(
-                            identity,
-                            country,
-                            &policy.identity_filter,
-                        )
+                        .enforce_filters_single(identity, country, &policy.identity_filter)
                         .is_ok()
                     {
                         if let Some(dst_tracker) = tracker_account {
                             if dst_tracker.total_amount < *limit {
-                                get_custom_error(policy.custom_error, PolicyEngineErrors::MinBalanceExceeded)?;
+                                get_custom_error(
+                                    policy.custom_error,
+                                    PolicyEngineErrors::MinBalanceExceeded,
+                                )?;
                             }
                         }
                     }
                 }
                 PolicyType::MinMaxBalance { min, max } => {
                     if self
-                        .enforce_filters_single(
-                            identity,
-                            country,
-                            &policy.identity_filter,
-                        )
+                        .enforce_filters_single(identity, country, &policy.identity_filter)
                         .is_ok()
                     {
                         if let Some(dst_tracker) = tracker_account {
                             if dst_tracker.total_amount > *max {
-                                get_custom_error(policy.custom_error, PolicyEngineErrors::MaxBalanceExceeded)?;
+                                get_custom_error(
+                                    policy.custom_error,
+                                    PolicyEngineErrors::MaxBalanceExceeded,
+                                )?;
                             }
                             if dst_tracker.total_amount < *min {
-                                get_custom_error(policy.custom_error, PolicyEngineErrors::MinBalanceExceeded)?;
+                                get_custom_error(
+                                    policy.custom_error,
+                                    PolicyEngineErrors::MinBalanceExceeded,
+                                )?;
                             }
                         }
                     }
@@ -454,14 +453,13 @@ impl PolicyEngineAccount {
                 PolicyType::TransferPause => */
                 PolicyType::ForbiddenIdentityGroup => {
                     if self
-                        .enforce_filters_single(
-                            identity,
-                            country,
-                            &policy.identity_filter,
-                        )
+                        .enforce_filters_single(identity, country, &policy.identity_filter)
                         .is_ok()
                     {
-                        get_custom_error(policy.custom_error, PolicyEngineErrors::ForbiddenIdentityGroup)?;
+                        get_custom_error(
+                            policy.custom_error,
+                            PolicyEngineErrors::ForbiddenIdentityGroup,
+                        )?;
                     }
                 }
                 _ => {}
@@ -489,17 +487,21 @@ impl PolicyEngineAccount {
         for policy in self.policies.iter() {
             match &policy.policy_type {
                 PolicyType::IdentityApproval => {
-                    if !self_transfer && self
-                        .enforce_filters_on_transfer(
-                            source_identity,
-                            source_country,
-                            destination_identity,
-                            destination_country,
-                            &policy.identity_filter,
-                        )
-                        .is_err()
+                    if !self_transfer
+                        && self
+                            .enforce_filters_on_transfer(
+                                source_identity,
+                                source_country,
+                                destination_identity,
+                                destination_country,
+                                &policy.identity_filter,
+                            )
+                            .is_err()
                     {
-                        get_custom_error(policy.custom_error, PolicyEngineErrors::IdentityFilterFailed)?;
+                        get_custom_error(
+                            policy.custom_error,
+                            PolicyEngineErrors::IdentityFilterFailed,
+                        )?;
                     }
                 }
                 PolicyType::TransactionAmountLimit { limit } => {
@@ -514,7 +516,10 @@ impl PolicyEngineAccount {
                         .is_ok()
                         && transfer_amount > *limit
                     {
-                        get_custom_error(policy.custom_error, PolicyEngineErrors::TransactionAmountLimitExceeded)?;
+                        get_custom_error(
+                            policy.custom_error,
+                            PolicyEngineErrors::TransactionAmountLimitExceeded,
+                        )?;
                     }
                 }
                 PolicyType::MaxBalance { limit } => {
@@ -528,10 +533,12 @@ impl PolicyEngineAccount {
                                 &policy.identity_filter,
                             )
                             .is_ok()
+                        && destination_balance > *limit
                     {
-                        if destination_balance > *limit {
-                            get_custom_error(policy.custom_error, PolicyEngineErrors::MaxBalanceExceeded)?;
-                        }
+                        get_custom_error(
+                            policy.custom_error,
+                            PolicyEngineErrors::MaxBalanceExceeded,
+                        )?;
                     }
                 }
                 PolicyType::MinBalance { limit } => {
@@ -543,10 +550,12 @@ impl PolicyEngineAccount {
                                 &policy.identity_filter,
                             )
                             .is_ok()
+                            && source_balance < *limit
                         {
-                            if source_balance < *limit {
-                                get_custom_error(policy.custom_error, PolicyEngineErrors::MinBalanceExceeded)?;
-                            }
+                            get_custom_error(
+                                policy.custom_error,
+                                PolicyEngineErrors::MinBalanceExceeded,
+                            )?;
                         }
                         if self
                             .enforce_filters_single(
@@ -555,10 +564,12 @@ impl PolicyEngineAccount {
                                 &policy.identity_filter,
                             )
                             .is_ok()
+                            && destination_balance < *limit
                         {
-                            if destination_balance < *limit {
-                                get_custom_error(policy.custom_error, PolicyEngineErrors::MinBalanceExceeded)?;
-                            }
+                            get_custom_error(
+                                policy.custom_error,
+                                PolicyEngineErrors::MinBalanceExceeded,
+                            )?;
                         }
                     }
                 }
@@ -577,67 +588,82 @@ impl PolicyEngineAccount {
                     }
                 }
                 PolicyType::ForceFullTransfer => {
-                    if !self_transfer && self
-                        .enforce_filters_on_transfer(
-                            source_identity,
-                            source_country,
-                            destination_identity,
-                            destination_country,
-                            &policy.identity_filter,
-                        )
-                        .is_ok()
+                    if !self_transfer
+                        && self
+                            .enforce_filters_on_transfer(
+                                source_identity,
+                                source_country,
+                                destination_identity,
+                                destination_country,
+                                &policy.identity_filter,
+                            )
+                            .is_ok()
                         && source_balance != 0
                     {
-                        get_custom_error(policy.custom_error, PolicyEngineErrors::ForceFullTransfer)?;
+                        get_custom_error(
+                            policy.custom_error,
+                            PolicyEngineErrors::ForceFullTransfer,
+                        )?;
                     }
                 }
                 PolicyType::ForbiddenIdentityGroup => {
-                    if !self_transfer && self
-                        .enforce_filters_on_transfer(
-                            source_identity,
-                            source_country,
-                            destination_identity,
-                            destination_country,
-                            &policy.identity_filter,
-                        )
-                        .is_ok()
+                    if !self_transfer
+                        && self
+                            .enforce_filters_on_transfer(
+                                source_identity,
+                                source_country,
+                                destination_identity,
+                                destination_country,
+                                &policy.identity_filter,
+                            )
+                            .is_ok()
                     {
-                        get_custom_error(policy.custom_error, PolicyEngineErrors::ForbiddenIdentityGroup)?;
+                        get_custom_error(
+                            policy.custom_error,
+                            PolicyEngineErrors::ForbiddenIdentityGroup,
+                        )?;
                     }
                 }
                 PolicyType::MinMaxBalance { min, max } => {
-                    if !self_transfer && self
-                        .enforce_filters_on_transfer(
-                            source_identity,
-                            source_country,
-                            destination_identity,
-                            destination_country,
-                            &policy.identity_filter,
-                        )
-                        .is_ok()
+                    if !self_transfer
+                        && self
+                            .enforce_filters_on_transfer(
+                                source_identity,
+                                source_country,
+                                destination_identity,
+                                destination_country,
+                                &policy.identity_filter,
+                            )
+                            .is_ok()
                     {
                         if source_balance < *min || destination_balance < *min {
-                            get_custom_error(policy.custom_error, PolicyEngineErrors::MinBalanceExceeded)?;
+                            get_custom_error(
+                                policy.custom_error,
+                                PolicyEngineErrors::MinBalanceExceeded,
+                            )?;
                         }
                         if source_balance > *max || destination_balance > *max {
-                            get_custom_error(policy.custom_error, PolicyEngineErrors::MaxBalanceExceeded)?;
+                            get_custom_error(
+                                policy.custom_error,
+                                PolicyEngineErrors::MaxBalanceExceeded,
+                            )?;
                         }
                     }
                 }
                 PolicyType::BlockFlowbackEndTime { time } => {
-                    if !is_platform_wallet && self
-                        .enforce_filters_on_transfer(
-                            source_identity,
-                            source_country,
-                            destination_identity,
-                            destination_country,
-                            &policy.identity_filter,
-                        )
-                        .is_ok()
+                    if !is_platform_wallet
+                        && self
+                            .enforce_filters_on_transfer(
+                                source_identity,
+                                source_country,
+                                destination_identity,
+                                destination_country,
+                                &policy.identity_filter,
+                            )
+                            .is_ok()
+                        && (*time == 0 || *time > timestamp)
                     {
-                        if *time == 0 || *time > timestamp {
-                            get_custom_error(policy.custom_error, PolicyEngineErrors::Flowback)?;
-                        }
+                        get_custom_error(policy.custom_error, PolicyEngineErrors::Flowback)?;
                     }
                 }
             }
@@ -662,7 +688,10 @@ impl PolicyEngineAccount {
 
         for counter in self.counters.iter_mut() {
             if changed_counters.contains(&counter.id) {
-                counter.value = counter.value.checked_sub(1).ok_or(PolicyEngineErrors::CounterUnderflow)?;
+                counter.value = counter
+                    .value
+                    .checked_sub(1)
+                    .ok_or(PolicyEngineErrors::CounterUnderflow)?;
             }
         }
 
@@ -687,7 +716,10 @@ impl PolicyEngineAccount {
 
         for counter in self.counters.iter_mut() {
             if changed_counters.contains(&counter.id) {
-                counter.value = counter.value.checked_add(1).ok_or(PolicyEngineErrors::CounterOverflow)?;
+                counter.value = counter
+                    .value
+                    .checked_add(1)
+                    .ok_or(PolicyEngineErrors::CounterOverflow)?;
             }
         }
 
@@ -702,7 +734,7 @@ impl PolicyEngineAccount {
                     min: _,
                     counter_id,
                 } => {
-                    if incremented_counters.contains(&counter_id) {
+                    if incremented_counters.contains(counter_id) {
                         let counter = self
                             .counters
                             .iter()
@@ -737,8 +769,8 @@ impl PolicyEngineAccount {
                     min_percentage,
                     max_percentage,
                 } => {
-                    if incremented_counters.contains(&higher_counter_id)
-                        || incremented_counters.contains(&lower_counter_id)
+                    if incremented_counters.contains(higher_counter_id)
+                        || incremented_counters.contains(lower_counter_id)
                     {
                         let higher_counter = self
                             .counters
@@ -777,7 +809,7 @@ impl PolicyEngineAccount {
                     min,
                     counter_id,
                 } => {
-                    if decremented_counters.contains(&counter_id) {
+                    if decremented_counters.contains(counter_id) {
                         let counter = self
                             .counters
                             .iter()
@@ -812,8 +844,8 @@ impl PolicyEngineAccount {
                     min_percentage,
                     max_percentage,
                 } => {
-                    if decremented_counters.contains(&higher_counter_id)
-                        || decremented_counters.contains(&lower_counter_id)
+                    if decremented_counters.contains(higher_counter_id)
+                        || decremented_counters.contains(lower_counter_id)
                     {
                         let higher_counter = self
                             .counters
@@ -856,11 +888,7 @@ impl PolicyEngineAccount {
 
         for counter in self.counters.iter() {
             let prev_match = self
-                .enforce_filters_single(
-                    previous_levels,
-                    previous_country,
-                    &counter.identity_filter,
-                )
+                .enforce_filters_single(previous_levels, previous_country, &counter.identity_filter)
                 .is_ok();
 
             let new_match = self
@@ -892,7 +920,7 @@ impl PolicyEngineAccount {
         &self,
         new_levels: &[IdentityLevel],
         country: u8,
-        timestamp: i64,
+        _timestamp: i64,
         balance: u64,
         enforce_limits: bool,
     ) -> Result<()> {
@@ -901,14 +929,10 @@ impl PolicyEngineAccount {
                 PolicyType::MinMaxBalance { min, max } => {
                     if enforce_limits
                         && self
-                            .enforce_filters_single(
-                                new_levels,
-                                country,
-                                &policy.identity_filter,
-                            )
+                            .enforce_filters_single(new_levels, country, &policy.identity_filter)
                             .is_ok()
                     {
-                        if balance < *min  {
+                        if balance < *min {
                             return Err(PolicyEngineErrors::MinBalanceExceeded.into());
                         } else if balance > *max {
                             return Err(PolicyEngineErrors::MaxBalanceExceeded.into());
@@ -918,31 +942,21 @@ impl PolicyEngineAccount {
                 PolicyType::MaxBalance { limit } => {
                     if enforce_limits
                         && self
-                            .enforce_filters_single(
-                                new_levels,
-                                country,
-                                &policy.identity_filter,
-                            )
+                            .enforce_filters_single(new_levels, country, &policy.identity_filter)
                             .is_ok()
+                        && balance > *limit
                     {
-                        if balance > *limit {
-                            return Err(PolicyEngineErrors::MaxBalanceExceeded.into());
-                        }
+                        return Err(PolicyEngineErrors::MaxBalanceExceeded.into());
                     }
                 }
                 PolicyType::MinBalance { limit } => {
                     if enforce_limits
                         && self
-                            .enforce_filters_single(
-                                new_levels,
-                                country,
-                                &policy.identity_filter,
-                            )
+                            .enforce_filters_single(new_levels, country, &policy.identity_filter)
                             .is_ok()
+                        && balance < *limit
                     {
-                        if balance < *limit {
-                            return Err(PolicyEngineErrors::MinBalanceExceeded.into());
-                        }
+                        return Err(PolicyEngineErrors::MinBalanceExceeded.into());
                     }
                 }
                 _ => {}
@@ -951,6 +965,10 @@ impl PolicyEngineAccount {
         Ok(())
     }
 
+    #[allow(
+        clippy::too_many_arguments,
+        reason = "Accepts the old and proposed identity snapshots without changing the public helper API."
+    )]
     pub fn update_and_enforce_policy_and_counters_on_levels_change(
         &mut self,
         previous_levels: &[IdentityLevel],
@@ -981,11 +999,13 @@ impl PolicyEngineAccount {
         removed_counters: Vec<u8>,
         added_counters: Vec<Counter>,
     ) -> Result<i32> {
-
         let mut space: i32 = 0;
 
         for removed_counter in removed_counters.iter() {
-            let pos = self.counters.iter().position(|c| c.id == *removed_counter)
+            let pos = self
+                .counters
+                .iter()
+                .position(|c| c.id == *removed_counter)
                 .ok_or(PolicyEngineErrors::CounterIdNotFound)?;
             space -= self.counters.remove(pos).get_space() as i32;
         }
@@ -1031,13 +1051,9 @@ impl PolicyEngineAccount {
         match filter.level {
             FilterLevel::Level(level) => {
                 let id = identity.iter().find(|identity| identity.level == level);
-                if filter.mode == FilterMode::Include
-                    && id.is_some()
-                {
+                if filter.mode == FilterMode::Include && id.is_some() {
                     return Ok(());
-                } else if filter.mode == FilterMode::Exclude
-                    && id.is_some()
-                {
+                } else if filter.mode == FilterMode::Exclude && id.is_some() {
                     return Err(PolicyEngineErrors::IdentityFilterFailed.into());
                 } else if filter.mode == FilterMode::Exclude {
                     return Ok(());
@@ -1048,22 +1064,18 @@ impl PolicyEngineAccount {
                 if (filter.mode == FilterMode::Include && country == c)
                     || (filter.mode == FilterMode::Exclude && country != c)
                 {
-                    return Ok(());
+                    Ok(())
                 } else {
-                    return Err(PolicyEngineErrors::IdentityFilterFailed.into());
+                    Err(PolicyEngineErrors::IdentityFilterFailed.into())
                 }
             }
             FilterLevel::LevelMapping { source, target } => {
                 let mapping = self.mapping[source as usize];
                 if mapping == target {
                     let id = identity.iter().find(|identity| identity.level == source);
-                    if filter.mode == FilterMode::Include
-                        && id.is_some()
-                    {
+                    if filter.mode == FilterMode::Include && id.is_some() {
                         return Ok(());
-                    } else if filter.mode == FilterMode::Exclude
-                        && id.is_some()
-                    {
+                    } else if filter.mode == FilterMode::Exclude && id.is_some() {
                         return Err(PolicyEngineErrors::IdentityFilterFailed.into());
                     } else if filter.mode == FilterMode::Exclude {
                         return Ok(());
@@ -1076,22 +1088,18 @@ impl PolicyEngineAccount {
                     || (filter.mode == FilterMode::Exclude
                         && self.mapping[country as usize] != target)
                 {
-                    return Ok(());
+                    Ok(())
                 } else {
-                    return Err(PolicyEngineErrors::IdentityFilterFailed.into());
+                    Err(PolicyEngineErrors::IdentityFilterFailed.into())
                 }
             }
             FilterLevel::LevelMappingAny(target) => {
                 let id = identity
                     .iter()
                     .find(|identity| self.mapping[identity.level as usize] == target);
-                if filter.mode == FilterMode::Include
-                    && id.is_some()
-                {
+                if filter.mode == FilterMode::Include && id.is_some() {
                     return Ok(());
-                } else if filter.mode == FilterMode::Exclude
-                    && id.is_some()
-                {
+                } else if filter.mode == FilterMode::Exclude && id.is_some() {
                     return Err(PolicyEngineErrors::IdentityFilterFailed.into());
                 } else if filter.mode == FilterMode::Exclude {
                     return Ok(());
@@ -1110,22 +1118,14 @@ impl PolicyEngineAccount {
         filter: &FilterData,
     ) -> Result<()> {
         match filter.target {
-            FilterTarget::Sender => {
-                self.match_data(identity_sender, country_sender, filter)
-            }
-            FilterTarget::Receiver => {
-                self.match_data(identity_receiver, country_receiver, filter)
-            }
+            FilterTarget::Sender => self.match_data(identity_sender, country_sender, filter),
+            FilterTarget::Receiver => self.match_data(identity_receiver, country_receiver, filter),
             FilterTarget::BothAnd => self
                 .match_data(identity_sender, country_sender, filter)
-                .and_then(|_| {
-                    self.match_data(identity_receiver, country_receiver, filter)
-                }),
+                .and_then(|_| self.match_data(identity_receiver, country_receiver, filter)),
             FilterTarget::BothOr => self
                 .match_data(identity_sender, country_sender, filter)
-                .or_else(|_| {
-                    self.match_data(identity_receiver, country_receiver, filter)
-                }),
+                .or_else(|_| self.match_data(identity_receiver, country_receiver, filter)),
         }
     }
 
@@ -1185,13 +1185,7 @@ impl PolicyEngineAccount {
                     .enforce_inner_filter(identity, country, identity, country, filter)
                     .is_ok()
                 {
-                    self.enforce_inner_filter(
-                        identity,
-                        country,
-                        identity,
-                        country,
-                        then_filter,
-                    )
+                    self.enforce_inner_filter(identity, country, identity, country, then_filter)
                 } else {
                     Ok(())
                 }
@@ -1250,22 +1244,16 @@ impl PolicyEngineAccount {
                     )
                 }),
             FilterInner::Multiple(FilterComparison::And, filters) => {
-                let mut result = Ok(());
-                for filter in filters.iter() {
-                    result = result.and_then(|_| {
-                        self.match_filter_data_and_target(
-                            identity_sender,
-                            country_sender,
-                            identity_receiver,
-                            country_receiver,
-                            filter,
-                        )
-                    });
-                    if result.is_err() {
-                        return result;
-                    }
+                for filter in filters {
+                    self.match_filter_data_and_target(
+                        identity_sender,
+                        country_sender,
+                        identity_receiver,
+                        country_receiver,
+                        filter,
+                    )?;
                 }
-                result
+                Ok(())
             }
             FilterInner::Multiple(FilterComparison::Or, filters) => {
                 let mut result = Err(PolicyEngineErrors::IdentityFilterFailed.into());

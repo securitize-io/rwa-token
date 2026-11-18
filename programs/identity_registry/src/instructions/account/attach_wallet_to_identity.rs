@@ -1,4 +1,7 @@
-use crate::{state::*, AttachWalletToIdentityEvent, IdentityAccount, IdentityRegistryAccount, IdentityRegistryErrors};
+use crate::{
+    state::*, AttachWalletToIdentityEvent, IdentityAccount, IdentityRegistryAccount,
+    IdentityRegistryErrors,
+};
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::Mint;
 
@@ -49,7 +52,7 @@ pub fn handler(ctx: Context<AttachWalletToIdentity>, wallet: Pubkey) -> Result<(
     emit_cpi!(AttachWalletToIdentityEvent {
         identity: ctx.accounts.identity_account.key(),
         mint: ctx.accounts.identity_registry.asset_mint,
-        wallet: wallet,
+        wallet,
         sender: ctx.accounts.payer.key(),
     });
     Ok(())

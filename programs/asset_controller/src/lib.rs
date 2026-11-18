@@ -47,7 +47,7 @@ pub mod asset_controller {
 
     /// revoke shares of the rwa asset
     pub fn revoke_tokens<'info>(
-        ctx: Context<'_, '_, '_, 'info, RevokeTokens<'info>>,
+        ctx: Context<'info, RevokeTokens<'info>>,
         amount: u64,
         reason: String,
     ) -> Result<()> {
@@ -56,7 +56,7 @@ pub mod asset_controller {
 
     /// seize shares of the rwa asset
     pub fn seize_tokens<'info>(
-        ctx: Context<'_, '_, '_, 'info, SeizeTokens<'info>>,
+        ctx: Context<'info, SeizeTokens<'info>>,
         amount: u64,
         reason: String,
     ) -> Result<()> {

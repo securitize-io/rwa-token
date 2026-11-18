@@ -9,5 +9,5 @@ crate-type = ["cdylib", "lib"]
 name = "rwa_utils"
 
 [dependencies]
-anchor-lang = "0.31.1"
-anchor-spl = "0.31.1"
+anchor-lang = { workspace = true }
+anchor-spl = { workspace = true }

@@ -11,6 +11,10 @@ pub fn get_identity_registry_pda(asset_mint: Pubkey) -> Pubkey {
     Pubkey::find_program_address(&[asset_mint.as_ref()], &crate::ID).0
 }
 
+#[allow(
+    clippy::too_many_arguments,
+    reason = "Arguments mirror the manual CPI account and instruction contract."
+)]
 pub fn cpi_enforce_policy_on_levels_change<'info>(
     identity_account: AccountInfo<'info>,
     identity_registry: AccountInfo<'info>,
@@ -24,9 +28,9 @@ pub fn cpi_enforce_policy_on_levels_change<'info>(
     signer_seeds: &[&[&[u8]]],
 ) -> Result<()> {
     let mut data: Vec<u8> = vec![236, 18, 123, 137, 253, 244, 32, 248];
-    data.extend(new_levels.try_to_vec()?);
-    data.extend(new_country.try_to_vec()?);
-    data.extend((!enforce_limits).try_to_vec()?);
+    new_levels.serialize(&mut data)?;
+    new_country.serialize(&mut data)?;
+    (!enforce_limits).serialize(&mut data)?;
     invoke_signed(
         &Instruction {
             program_id: policy_program.key(),
@@ -89,6 +93,10 @@ pub fn cpi_remove_tracker_account<'info>(
     Ok(())
 }
 
+#[allow(
+    clippy::too_many_arguments,
+    reason = "Arguments mirror the manual CPI account and instruction contract."
+)]
 pub fn cpi_create_tracker_account<'info>(
     payer: AccountInfo<'info>,
     identity_account: AccountInfo<'info>,
@@ -102,7 +110,7 @@ pub fn cpi_create_tracker_account<'info>(
 ) -> Result<()> {
     let mut data: Vec<u8> = vec![40, 16, 40, 191, 109, 177, 83, 190];
     data.extend(owner.to_bytes());
-    
+
     invoke_signed(
         &Instruction {
             program_id: policy_program.key(),

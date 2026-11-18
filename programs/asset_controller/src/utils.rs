@@ -1,5 +1,7 @@
 use anchor_lang::{
-    prelude::Result, solana_program::{program::invoke, system_instruction::transfer}, Lamports
+    prelude::Result,
+    solana_program::{program::invoke, system_instruction::transfer},
+    Lamports,
 };
 
 use crate::{AccountInfo, Rent, SolanaSysvar};

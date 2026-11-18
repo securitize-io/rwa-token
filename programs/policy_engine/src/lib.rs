@@ -13,6 +13,7 @@ pub use state::*;
 pub use utils::*;
 
 use anchor_lang::prelude::*;
+use spl_discriminator::SplDiscriminate;
 
 declare_id!("FsE8mCJyvgMzqJbfHbJQm3iuf3cRZC6n2vZi1Q8rQCy2");
 
@@ -23,10 +24,7 @@ pub mod policy_engine {
     use super::*;
 
     /// create a policy registry
-    pub fn create_policy_engine(
-        ctx: Context<CreatePolicyEngine>,
-        authority: Pubkey,
-    ) -> Result<()> {
+    pub fn create_policy_engine(ctx: Context<CreatePolicyEngine>, authority: Pubkey) -> Result<()> {
         instructions::engine::create::handler(ctx, authority)
     }
 
@@ -61,7 +59,7 @@ pub mod policy_engine {
     }
 
     /// execute transfer hook
-    #[interface(spl_transfer_hook_interface::execute)]
+    #[instruction(discriminator = spl_transfer_hook_interface::instruction::ExecuteInstruction::SPL_DISCRIMINATOR_SLICE)]
     pub fn execute_transaction(ctx: Context<ExecuteTransferHook>, amount: u64) -> Result<()> {
         instructions::execute::handler(ctx, amount)
     }
@@ -138,11 +136,37 @@ pub mod policy_engine {
         instructions::engine::set_counters::handler(ctx, changed_counters, values)
     }
 
-    pub fn add_lock(ctx: Context<AddLockAccounts>, amount: u64, release_timestamp: i64, reason: u64, reason_string: String) -> Result<()> {
-        instructions::tracker::add_lock::handler(ctx, amount, release_timestamp, reason, reason_string)
+    pub fn add_lock(
+        ctx: Context<AddLockAccounts>,
+        amount: u64,
+        release_timestamp: i64,
+        reason: u64,
+        reason_string: String,
+    ) -> Result<()> {
+        instructions::tracker::add_lock::handler(
+            ctx,
+            amount,
+            release_timestamp,
+            reason,
+            reason_string,
+        )
     }
 
     pub fn remove_lock(ctx: Context<RemoveLockAccounts>, index: u8) -> Result<()> {
         instructions::tracker::remove_lock::handler(ctx, index)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use anchor_lang::InstructionData;
+    use spl_transfer_hook_interface::instruction::TransferHookInstruction;
+
+    #[test]
+    fn execute_instruction_matches_token_2022_hook_wire_format() {
+        let amount = 42;
+        let anchor_data = crate::instruction::ExecuteTransaction { amount }.data();
+        let spl_data = TransferHookInstruction::Execute { amount }.pack();
+        assert_eq!(anchor_data, spl_data);
     }
 }

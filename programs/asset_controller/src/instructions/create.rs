@@ -1,9 +1,8 @@
 /// creates a mint a new asset
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{
-        token_metadata_initialize, Mint, Token2022,
-        TokenMetadataInitialize,
-    };
+    token_metadata_initialize, Mint, Token2022, TokenMetadataInitialize,
+};
 use identity_registry::{
     cpi::{accounts::CreateIdentityRegistry, create_identity_registry},
     program::IdentityRegistry,
@@ -12,9 +11,9 @@ use policy_engine::{
     cpi::{accounts::CreatePolicyEngine, create_policy_engine},
     program::PolicyEngine,
 };
-use rwa_utils::{get_bump_in_seed_form, ASSET_ACCESS_CONTROLLER_ID};
+use rwa_utils::get_bump_in_seed_form;
 
-use crate::{state::*, update_account_lamports_to_minimum_balance, AssetControllerErrors};
+use crate::{state::*, update_account_lamports_to_minimum_balance};
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct CreateAssetControllerArgs {
@@ -88,19 +87,13 @@ impl<'info> CreateAssetController<'info> {
             mint_authority: self.asset_controller.to_account_info(),
             update_authority: self.asset_controller.to_account_info(),
         };
-        let cpi_ctx = CpiContext::new_with_signer(
-            self.token_program.to_account_info(),
-            cpi_accounts,
-            signer_seeds,
-        );
+        let cpi_ctx =
+            CpiContext::new_with_signer(self.token_program.key(), cpi_accounts, signer_seeds);
         token_metadata_initialize(cpi_ctx, name, symbol, uri)?;
         Ok(())
     }
 
-    fn create_policy_engine(
-        &self,
-        signer_seeds: &[&[&[u8]]],
-    ) -> Result<()> {
+    fn create_policy_engine(&self, signer_seeds: &[&[&[u8]]]) -> Result<()> {
         let cpi_accounts = CreatePolicyEngine {
             payer: self.payer.to_account_info(),
             signer: self.asset_controller.to_account_info(),
@@ -109,22 +102,13 @@ impl<'info> CreateAssetController<'info> {
             policy_engine_account: self.policy_engine_account.to_account_info(),
             system_program: self.system_program.to_account_info(),
         };
-        let cpi_ctx = CpiContext::new_with_signer(
-            self.policy_engine.to_account_info(),
-            cpi_accounts,
-            signer_seeds,
-        );
-        create_policy_engine(
-            cpi_ctx,
-            self.authority.key(),
-        )?;
+        let cpi_ctx =
+            CpiContext::new_with_signer(self.policy_engine.key(), cpi_accounts, signer_seeds);
+        create_policy_engine(cpi_ctx, self.authority.key())?;
         Ok(())
     }
 
-    fn create_identity_registry(
-        &self,
-        signer_seeds: &[&[&[u8]]],
-    ) -> Result<()> {
+    fn create_identity_registry(&self, signer_seeds: &[&[&[u8]]]) -> Result<()> {
         let cpi_accounts = CreateIdentityRegistry {
             payer: self.payer.to_account_info(),
             signer: self.asset_controller.to_account_info(),
@@ -132,43 +116,42 @@ impl<'info> CreateAssetController<'info> {
             identity_registry_account: self.identity_registry_account.to_account_info(),
             system_program: self.system_program.to_account_info(),
         };
-        let cpi_ctx = CpiContext::new_with_signer(
-            self.identity_registry.to_account_info(),
-            cpi_accounts,
-            signer_seeds,
-        );
-        create_identity_registry(
-            cpi_ctx,
-            self.authority.key(),
-        )?;
+        let cpi_ctx =
+            CpiContext::new_with_signer(self.identity_registry.key(), cpi_accounts, signer_seeds);
+        create_identity_registry(cpi_ctx, self.authority.key())?;
         Ok(())
     }
-
 }
 
 pub fn handler(ctx: Context<CreateAssetController>, args: CreateAssetControllerArgs) -> Result<()> {
-    // RWA RBAC authority derivation and enforcement
-    let (controller, _) = Pubkey::find_program_address(
-        &[
-            ctx.accounts.asset_mint.key().as_ref(),
-            b"AssetAccessController".as_ref(),
-        ],
-        &ASSET_ACCESS_CONTROLLER_ID,
-    );
-
-    let (controller_authority, _) =
-        Pubkey::find_program_address(&[controller.as_ref()], &ASSET_ACCESS_CONTROLLER_ID);
-
     #[cfg(not(feature = "localnet"))]
-    require!(
-        ctx.accounts.authority.key() == controller_authority,
-        AssetControllerErrors::InvalidAuthority
-    );
+    {
+        // RWA RBAC authority derivation and enforcement
+        let (controller, _) = Pubkey::find_program_address(
+            &[
+                ctx.accounts.asset_mint.key().as_ref(),
+                b"AssetAccessController".as_ref(),
+            ],
+            &rwa_utils::ASSET_ACCESS_CONTROLLER_ID,
+        );
 
-    ctx.accounts.asset_controller.set_inner(AssetControllerAccount::new(
-        ctx.accounts.asset_mint.key(),
-        ctx.accounts.authority.key(),
-    ));
+        let (controller_authority, _) = Pubkey::find_program_address(
+            &[controller.as_ref()],
+            &rwa_utils::ASSET_ACCESS_CONTROLLER_ID,
+        );
+
+        require!(
+            ctx.accounts.authority.key() == controller_authority,
+            crate::AssetControllerErrors::InvalidAuthority
+        );
+    }
+
+    ctx.accounts
+        .asset_controller
+        .set_inner(AssetControllerAccount::new(
+            ctx.accounts.asset_mint.key(),
+            ctx.accounts.authority.key(),
+        ));
     let asset_mint = ctx.accounts.asset_mint.key();
 
     let signer_seeds = [
@@ -200,14 +183,10 @@ pub fn handler(ctx: Context<CreateAssetController>, args: CreateAssetControllerA
     });
 
     // create policy registry
-    ctx.accounts.create_policy_engine(
-        &[&signer_seeds],
-    )?;
+    ctx.accounts.create_policy_engine(&[&signer_seeds])?;
 
     // create identity registry
-    ctx.accounts.create_identity_registry(
-        &[&signer_seeds],
-    )?;
+    ctx.accounts.create_identity_registry(&[&signer_seeds])?;
 
     Ok(())
 }

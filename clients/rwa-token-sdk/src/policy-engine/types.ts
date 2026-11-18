@@ -1,4 +1,4 @@
-import { type IdlAccounts, type IdlTypes } from "@coral-xyz/anchor";
+import { type IdlAccounts, type IdlTypes } from "@anchor-lang/core";
 import { type PolicyEngineIdlTypes } from "../programs";
 
 /** Represents on chain policy. */

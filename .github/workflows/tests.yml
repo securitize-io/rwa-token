@@ -1,66 +1,83 @@
 name: tests
-env:
-  cli-id: anchor-v0.30.1-solana-1.18.10
 on:
   pull_request:
-    branches:
-      - 'staging'
+    branches: [staging]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ANCHOR_VERSION: 1.1.2
+  SOLANA_VERSION: 3.1.10
+  SURFPOOL_VERSION: 1.5.0
 
 jobs:
-  setup-tests:
-    runs-on: ubicloud-standard-16
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
+  integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
-      - id: cache-cli-deps
-        uses: actions/cache@v2
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.89.0
+      - uses: actions/setup-node@v4
         with:
-          key: $${{ env.cli-id }}
-          path: |
-            ~/.local/share/solana
-            ~/.cargo/bin/anchor
-      - id: install-os-deps
-        if: steps.cache-cli-deps.outputs.cache-hit != 'true'
-        run: sudo apt-get update && sudo apt-get install -y pkg-config build-essential libudev-dev
+          node-version: '22'
+      - run: corepack enable
+      - name: Install Anchor
+        run: |
+          curl -fsSL "https://github.com/otter-sec/anchor/releases/download/v${ANCHOR_VERSION}/anchor-${ANCHOR_VERSION}-x86_64-unknown-linux-gnu" -o /tmp/anchor
+          echo "fdea9979629e9416e5f5e5622ff6c11b8c691d1e559581ece368e903c0c980c1  /tmp/anchor" | sha256sum --check
+          install /tmp/anchor "$HOME/.cargo/bin/anchor"
+      - name: Install Solana
+        run: |
+          sh -c "$(curl -sSfL https://release.anza.xyz/v${SOLANA_VERSION}/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_ENV"
+      - name: Install Surfpool
+        run: |
+          curl -fsSL "https://github.com/solana-foundation/surfpool/releases/download/v${SURFPOOL_VERSION}/surfpool-linux-x64.tar.gz" -o /tmp/surfpool.tar.gz
+          echo "5b20a3b46e60c4f819af7b4da5c3ea211f76041710617841cc23247d15887ddc  /tmp/surfpool.tar.gz" | sha256sum --check
+          tar -xzf /tmp/surfpool.tar.gz -C /tmp
+          install /tmp/surfpool "$HOME/.cargo/bin/surfpool"
+      - name: Install SDK dependencies
+        working-directory: clients/rwa-token-sdk
+        run: corepack yarn install --frozen-lockfile --ignore-scripts
+      - name: Create local test wallet
+        run: solana-keygen new --no-bip39-passphrase --silent
+      - name: Check default build
+        run: |
+          cargo check --workspace --locked
+          cargo test --workspace --locked
+          anchor build --ignore-keys
+      - name: Check generated SDK interfaces
+        run: git diff --exit-code -- clients/rwa-token-sdk/src/programs/idls clients/rwa-token-sdk/src/programs/types
+      - name: Check SDK
+        working-directory: clients/rwa-token-sdk
+        run: |
+          corepack yarn type-check
+          corepack yarn build:package
+      - name: Test with Surfpool
+        run: anchor test -- --features localnet
 
-      - id: install-solana-tools
-        if: steps.cache-cli-deps.outputs.cache-hit != 'true'
-        run: sh -c "$(curl -sSfL https://release.solana.com/v1.18.8/install)"
-
-      - run: echo "PATH=$HOME/.local/share/solana/install/active_release/bin:$PATH" >> $GITHUB_ENV
-
-      - id: install-anchor-cli
-        if: steps.cache-cli-deps.outputs.cache-hit != 'true'
-        run: cargo install --git https://github.com/bridgesplit/anchor  anchor-cli
-
-  run-tests:
-    runs-on: ubicloud-standard-16
-    needs: [setup-tests]
+  lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
-      - id: cache-cli-deps
-        uses: actions/cache@v2
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.89.0
         with:
-          key: $${{ env.cli-id }}
-          path: |
-            ~/.local/share/solana
-            ~/.cargo/bin/anchor
-      - id: install-os-deps
-        run: sudo apt-get update && sudo apt-get install -y pkg-config build-essential libudev-dev
-
-      - run: echo "PATH=$HOME/.local/share/solana/install/active_release/bin:$HOME/.cargo/bin:$PATH" >> $GITHUB_ENV
-      - uses: actions/setup-node@v2
+          components: rustfmt, clippy
+      - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-
-      - run: cd clients/rwa-token-sdk && yarn install
-      - run: cd clients/rwa-token-sdk && yarn lint
-      - run: solana-keygen new --no-bip39-passphrase
-      - run: cargo fmt -- --check
-      - run: cargo clippy -- -D warnings
-      - run: anchor build
-      - run: anchor test
+          node-version: '22'
+      - run: corepack enable
+      - name: Install SDK dependencies
+        working-directory: clients/rwa-token-sdk
+        run: corepack yarn install --frozen-lockfile --ignore-scripts
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - working-directory: clients/rwa-token-sdk
+        run: corepack yarn lint

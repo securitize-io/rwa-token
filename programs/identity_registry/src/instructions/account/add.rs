@@ -50,7 +50,9 @@ pub fn handler(
         &[ctx.accounts.identity_registry.bump][..],
     ];
 
-    ctx.accounts.identity_account.add_levels(&levels, &expiries)?;
+    ctx.accounts
+        .identity_account
+        .add_levels(&levels, &expiries)?;
     let new_levels = ctx.accounts.identity_account.levels.clone();
 
     cpi_enforce_policy_on_levels_change(
@@ -69,8 +71,8 @@ pub fn handler(
     emit_cpi!(AddLevelsToIdentityEvent {
         identity: ctx.accounts.identity_account.key(),
         mint: ctx.accounts.asset_mint.key(),
-        levels: levels,
-        expiries: expiries,
+        levels,
+        expiries,
         sender: ctx.accounts.payer.key(),
     });
     Ok(())

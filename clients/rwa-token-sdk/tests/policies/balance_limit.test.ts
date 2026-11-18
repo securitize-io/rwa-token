@@ -1,4 +1,4 @@
-import { AnchorProvider, BN, Wallet } from "@coral-xyz/anchor";
+import { AnchorProvider, BN, Wallet } from "@anchor-lang/core";
 import {
 	getTransferTokensIxs,
 	RwaClient,
@@ -99,7 +99,7 @@ describe("test additional policies", async () => {
 			[setup.payerKp, setup.authorityKp]
 		);
 	});
-	
+
 	describe("test Balance policies", async () => {
 		const balanceLimit = new BN(100000); // 1,000 tokens with 2 decimals
 		const minBalanceLimit = new BN(1000); // 10 tokens with 2 decimals
@@ -120,10 +120,10 @@ describe("test additional policies", async () => {
 						]
 					}]
 				},
-				policyType: { 
-					maxBalance: { 
+				policyType: {
+					maxBalance: {
 						limit: balanceLimit,
-					} 
+					}
 				},
 			});
 			const txnId = await sendAndConfirmTransaction(
@@ -144,7 +144,7 @@ describe("test additional policies", async () => {
 				decimals,
 				createTa: true,
 			}, rwaClient.provider);
-            
+
 			const txnId = await sendAndConfirmTransaction(
 				setup.provider.connection,
 				new Transaction().add(...transferTokensIxs),
@@ -164,8 +164,8 @@ describe("test additional policies", async () => {
 				decimals,
 				createTa: true,
 			}, rwaClient.provider);
-            
-			expect(sendAndConfirmTransaction(
+
+			await expect(sendAndConfirmTransaction(
 				setup.provider.connection,
 				new Transaction().add(...transferTokensIxs),
 				[setup.user1Kp],
@@ -174,7 +174,7 @@ describe("test additional policies", async () => {
 			// currentBalance remains unchanged as this is a transfer within the group
 		});
 
-		
+
 		test("attach MinBalance policy", async () => {
 			const attachPolicy = await rwaClient.policyEngine.attachPolicy({
 				payer: setup.payer.toString(),
@@ -191,10 +191,10 @@ describe("test additional policies", async () => {
 						]
 					}]
 				},
-				policyType: { 
-					minBalance: { 
+				policyType: {
+					minBalance: {
 						limit: minBalanceLimit,
-					} 
+					}
 				},
 			});
 			const txnId = await sendAndConfirmTransaction(
@@ -207,7 +207,7 @@ describe("test additional policies", async () => {
 
 		test("transfer bellow min balance", async () => {
 			const transferAmount = 2000; // 20 tokens
-			
+
 			const transferTokensIxs = await getTransferTokensIxs({
 				from: setup.user2.toString(),
 				to: setup.user1.toString(),
@@ -216,8 +216,8 @@ describe("test additional policies", async () => {
 				decimals,
 				createTa: true,
 			}, rwaClient.provider);
-            
-			expect(sendAndConfirmTransaction(
+
+			await expect(sendAndConfirmTransaction(
 				setup.provider.connection,
 				new Transaction().add(...transferTokensIxs),
 				[setup.user2Kp],
@@ -236,7 +236,7 @@ describe("test additional policies", async () => {
 				decimals,
 				createTa: true,
 			}, rwaClient.provider);
-            
+
 			const txnId = await sendAndConfirmTransaction(
 				setup.provider.connection,
 				new Transaction().add(...transferTokensIxs),

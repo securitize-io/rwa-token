@@ -1,4 +1,4 @@
-import { getProvider } from "@coral-xyz/anchor";
+import { getProvider } from "@anchor-lang/core";
 import { Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import "dotenv/config";
 

@@ -24,3 +24,6 @@ These programs limit the assumed necessary functionality to the support of permi
 ## Getting Started
 
 This program is currently in development and not for active use. If you wish to contribute, please reach out to team [at] bridgesplit [dot] com.
+
+
+Build and local testing instructions for Anchor 1.1.2 and Surfpool are in [programs/README.md](programs/README.md#build-and-test).

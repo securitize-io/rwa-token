@@ -8,7 +8,6 @@ pub struct BurnEvent {
     pub mint: Pubkey,
 }
 
-
 #[event]
 pub struct SeizeEvent {
     pub amount: u64,

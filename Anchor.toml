@@ -1,11 +1,18 @@
-[features]
-seeds = false
+[toolchain]
+anchor_version = "1.1.2"
+package_manager = "yarn"
 
-[registry]
-url = "https://anchor.projectserum.com"
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+asset_controller = "7tXjmbkZVY3Gmg9kDBebcNXT1yC5pyoxxXVLwdbv9tvP"
+identity_registry = "GZsnjqT3c5zbHqsctrJ4EG4rbEfo7ZXyyUG7aDJNmxfA"
+policy_engine = "FsE8mCJyvgMzqJbfHbJQm3iuf3cRZC6n2vZi1Q8rQCy2"
 
 [provider]
-cluster = "localnet"
+cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [workspace]
@@ -14,17 +21,19 @@ members = [
   "programs/identity_registry",
   "programs/policy_engine",
 ]
-
-[programs.localnet]
-asset_controller = "7tXjmbkZVY3Gmg9kDBebcNXT1yC5pyoxxXVLwdbv9tvP"
-identity_registry = "GZsnjqT3c5zbHqsctrJ4EG4rbEfo7ZXyyUG7aDJNmxfA"
-policy_engine = "FsE8mCJyvgMzqJbfHbJQm3iuf3cRZC6n2vZi1Q8rQCy2"
+idls = "clients/rwa-token-sdk/src/programs/idls"
+types = "clients/rwa-token-sdk/src/programs/types"
 
 [scripts]
-test = "cd clients/rwa-token-sdk && yarn test"
+test = "cd clients/rwa-token-sdk && corepack yarn test"
 
-[test.validator]
-url = "https://api.mainnet-beta.solana.com"
-
-[toolchain]
-anchor_version = "0.31.1"
+[surfpool]
+startup_wait = 30000
+shutdown_wait = 2000
+rpc_port = 8899
+ws_port = 8900
+host = "127.0.0.1"
+# These fixtures create all state locally; no devnet accounts need cloning.
+online = false
+block_production_mode = "clock"
+log_level = "info"
