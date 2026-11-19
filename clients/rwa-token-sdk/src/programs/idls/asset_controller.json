@@ -1846,6 +1846,11 @@
       "code": 6027,
       "name": "BurnReasonTooLong",
       "msg": "Burn reason exceeds 256 UTF-8 bytes"
+    },
+    {
+      "code": 6028,
+      "name": "AssetControllerMigrationRequired",
+      "msg": "Migrate the asset controller to V2 before using mint/burn controls"
     }
   ],
   "types": [

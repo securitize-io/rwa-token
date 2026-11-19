@@ -15,7 +15,13 @@ pub struct ProposeMint<'info> {
     pub authority: Signer<'info>,
     #[account(mint::token_program = token_program, mint::authority = asset_controller)]
     pub asset_mint: InterfaceAccount<'info, Mint>,
-    #[account(seeds = [asset_mint.key().as_ref()], bump, has_one = asset_mint, has_one = authority @ AssetControllerErrors::InvalidAuthority)]
+    #[account(
+        seeds = [asset_mint.key().as_ref()],
+        bump,
+        has_one = asset_mint,
+        has_one = authority @ AssetControllerErrors::InvalidAuthority,
+        constraint = asset_controller.version == AssetControllerAccount::VERSION @ AssetControllerErrors::AssetControllerMigrationRequired,
+    )]
     pub asset_controller: Account<'info, AssetControllerAccount>,
     /// CHECK: Bound to the typed wallet identity account below.
     pub wallet: UncheckedAccount<'info>,

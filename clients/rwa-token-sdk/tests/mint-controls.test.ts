@@ -1,7 +1,7 @@
 import { AnchorProvider, BN, Wallet, utils } from "@anchor-lang/core";
 import { beforeAll, describe, expect, test } from "vitest";
 import { ComputeBudgetProgram, Keypair, PublicKey, SYSVAR_CLOCK_PUBKEY, Transaction, TransactionInstruction, sendAndConfirmTransaction } from "@solana/web3.js";
-import { TOKEN_2022_PROGRAM_ID, getAccount, getAssociatedTokenAddressSync, getMint } from "@solana/spl-token";
+import { TOKEN_2022_PROGRAM_ID, getAccount, getAssociatedTokenAddressSync, getMint, getMemoTransfer } from "@solana/spl-token";
 import {
 	assetControllerProgramId, getAssetControllerAccount, getAssetControllerAccountsWithFilter,
 	getAssetControllerPda, getAssetControllerProgram, getAttachWalletToIdentityIx,
@@ -11,7 +11,8 @@ import {
 	generateOperationId, getProposeBurnIx, getPendingOperation,
 	getPendingOperationPda, getPendingOperations, getProposeMintIx, getRevokeTokensIx,
 	getSetupAssetControllerIxs, getSetupUserIxs, getTrackerAccount,
-	getFreezeTokenIx, getThawTokenIx,
+	getFreezeTokenIx, getThawTokenIx, getUpdateAssetMetadataIx, getSeizeTokensIx,
+	getEnableMemoTransferIx, getDisableMemoTransferIx,
 	type CapsConfig, type ThrottleConfig, type ProposeMintArgs,
 } from "../src";
 import { setupTests } from "./setup";
@@ -58,17 +59,22 @@ describe.sequential("asset-controller mint controls", () => {
 	async function fixture(limits: Limits | null = config()) {
 		const create = await getSetupAssetControllerIxs({ payer: setup.payer.toBase58(), authority: setup.authority.toBase58(), decimals: 0, name: "Mint controls", symbol: "CAP", uri: "https://example.com/cap" }, provider);
 		const assetMint = create.signers[0].publicKey.toBase58();
-		await send(create.ixs, create.signers);
 		const user = await getSetupUserIxs({ assetMint, payer: setup.payer.toBase58(), signer: setup.authority.toBase58(), owner: setup.user1.toBase58(), levels: [1], expiry: [new BN(2_000_000_000)], country: 1 }, provider);
-		await send(user.ixs, user.signers);
-		if (limits) await configure(assetMint, limits);
+		// These fixed-size fixture instructions fit together in one transaction.
+		const ixs = [...create.ixs, ...user.ixs];
+		if (limits) {
+			const { maxMintPerTx, maxBurnPerTx, ...throttle } = limits;
+			ixs.push(await getSetCapsConfigIx({ assetMint, authority: setup.authority.toBase58(), caps: { maxMintPerTx, maxBurnPerTx } }, provider));
+			ixs.push(await getSetThrottleConfigIx({ assetMint, authority: setup.authority.toBase58(), throttle }, provider));
+		}
+		await send(ixs, [...create.signers, ...user.signers]);
 		return assetMint;
 	}
 
 	async function configure(assetMint: string, limits: Limits) {
 		const { maxMintPerTx, maxBurnPerTx, ...throttle } = limits;
 		const current = await getAssetControllerAccount(assetMint, provider);
-		if (!current) throw new Error("Missing controller");
+		if (!current || current.version !== 2) throw new Error("Expected V2 controller");
 		const args = { assetMint, authority: setup.authority.toBase58() };
 		const ixs: TransactionInstruction[] = [];
 		if (!current.caps.maxMintPerTx.eq(maxMintPerTx) || !current.caps.maxBurnPerTx.eq(maxBurnPerTx)) {
@@ -90,7 +96,7 @@ describe.sequential("asset-controller mint controls", () => {
 
 	async function controls(assetMint: string) {
 		const account = await getAssetControllerAccount(assetMint, provider);
-		if (!account) throw new Error("Missing controller");
+		if (!account || account.version !== 2) throw new Error("Expected V2 controller");
 		return account;
 	}
 
@@ -166,11 +172,20 @@ describe.sequential("asset-controller mint controls", () => {
 		return names;
 	}
 
+	async function injectLegacy(mint: string, padding = 0) {
+		const address = getAssetControllerPda(mint);
+		const bytes = Buffer.concat([Buffer.from([70, 136, 149, 138, 12, 87, 52, 105, 1]), new PublicKey(mint).toBuffer(), setup.authority.toBuffer(), Buffer.alloc(padding, 0xa5)]);
+		const response = await fetch(provider.connection.rpcEndpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "surfnet_setAccount", params: [address.toBase58(), { data: bytes.toString("hex"), owner: assetControllerProgramId.toBase58(), lamports: await provider.connection.getMinimumBalanceForRentExemption(bytes.length) }] }) });
+		const result = await response.json() as { error?: unknown };
+		expect(result.error).toBeUndefined();
+		return bytes;
+	}
+
 	test("new V2 controllers start disabled and preserve ordinary issuance", async () => {
 		const mint = await fixture(null);
 		const account = await getAssetControllerAccount(mint, provider);
 		expect(account?.version).toBe(2);
-		expect(account?.throttle.enabled).toBe(false);
+		expect(account?.version === 2 && account.throttle.enabled).toBe(false);
 		expect((await provider.connection.getAccountInfo(getAssetControllerPda(mint)))?.data.subarray(0, 8)).toEqual(Buffer.from([70, 136, 149, 138, 12, 87, 52, 105]));
 		await issue(mint, 2_000);
 		expect(await balance(mint)).toBe(2_000n);
@@ -287,14 +302,6 @@ describe.sequential("asset-controller mint controls", () => {
 		expect(await getPendingOperation(mint, p.operationId, provider)).not.toBeNull();
 	});
 
-	test("duplicate submissions collide while pending and a new request ID creates a new intent", async () => {
-		const mint = await fixture(delayed());
-		const p = await proposal(mint);
-		await expect(send([p.ix])).rejects.toThrow();
-		await proposal(mint);
-		expect((await getPendingOperations(mint, provider)).length).toBe(2);
-	});
-
 	test("cancellation is authorized, emits an event, refunds rent, and permits a fresh proposal", async () => {
 		const mint = await fixture(delayed());
 		const p = await proposal(mint);
@@ -314,23 +321,27 @@ describe.sequential("asset-controller mint controls", () => {
 		expect(await getPendingOperation(mint, p.operationId, provider)).not.toBeNull();
 	});
 
-	test("expiry blocks execution, supports cleanup, emits an event, and releases the ID", async () => {
-		const mint = await fixture(delayed({ pendingOperationGracePeriod: new BN(2) }));
-		const p = await proposal(mint);
-		const execute = await executeIx(mint, p.operationId);
-		const expire = await getExpirePendingIx({ assetMint: mint, operationId: p.operationId }, provider);
-		expect(expire.keys.filter(account => account.isSigner)).toEqual([]);
-		await expect(send([expire])).rejects.toThrow("PendingOperationNotExpired");
-		await waitUntil(p.pending.expiresAt);
-		await expect(send(execute)).rejects.toThrow("PendingOperationExpired");
-		const rent = await provider.connection.getBalance(getPendingOperationPda(mint, p.operationId));
-		const payerBalance = await provider.connection.getBalance(p.pending.rentPayer);
-		const signature = await send([expire]);
-		expect(await provider.connection.getBalance(p.pending.rentPayer)).toBe(payerBalance + rent);
-		expect(await getPendingOperation(mint, p.operationId, provider)).toBeNull();
-		expect(await events(signature)).toContain("operationExpired");
-		await send([p.ix]);
-		expect(await getPendingOperation(mint, p.operationId, provider)).not.toBeNull();
+	test("expiry blocks mint and burn execution, refunds rent, and releases IDs", async () => {
+		const mint = await fixture(null);
+		await issue(mint, 500);
+		await configure(mint, delayed({ pendingOperationGracePeriod: new BN(2) }));
+		const operations = [await proposal(mint), await burnProposal(mint)];
+		const expiries = await Promise.all(operations.map(p => getExpirePendingIx({ assetMint: mint, operationId: p.operationId }, provider)));
+		for (const expire of expiries) expect(expire.keys.filter(account => account.isSigner)).toEqual([]);
+		await expect(send([expiries[0]])).rejects.toThrow("PendingOperationNotExpired");
+		await waitUntil(BN.max(operations[0].pending.expiresAt, operations[1].pending.expiresAt));
+		for (const [index, p] of operations.entries()) {
+			await expect(send(await executeIx(mint, p.operationId))).rejects.toThrow("PendingOperationExpired");
+			const rent = await provider.connection.getBalance(getPendingOperationPda(mint, p.operationId));
+			const payerBefore = await provider.connection.getBalance(p.pending.rentPayer);
+			const signature = await send([expiries[index]]);
+			expect(await provider.connection.getBalance(p.pending.rentPayer)).toBe(payerBefore + rent);
+			expect(await getPendingOperation(mint, p.operationId, provider)).toBeNull();
+			expect(await events(signature)).toContain("operationExpired");
+			await send([p.ix]);
+			expect(await getPendingOperation(mint, p.operationId, provider)).not.toBeNull();
+		}
+		expect(await balance(mint)).toBe(500n);
 	});
 
 	test("execution rechecks current caps without changing the proposal's timestamps", async () => {
@@ -359,16 +370,6 @@ describe.sequential("asset-controller mint controls", () => {
 		expect(await getPendingOperation(mint, p.operationId, provider)).not.toBeNull();
 	});
 
-	test("delayed issuance resolves attached wallets and keeps identity tracker accounting", async () => {
-		const mint = await fixture(delayed());
-		await send([await getAttachWalletToIdentityIx({ assetMint: mint, payer: setup.payer.toBase58(), authority: setup.authority.toBase58(), owner: setup.user1.toBase58(), wallet: setup.user2.toBase58() }, provider)]);
-		const p = await proposal(mint, setup.user2.toBase58());
-		await waitUntil(p.pending.effectiveAt);
-		await send(await executeIx(mint, p.operationId));
-		expect(await balance(mint, setup.user2)).toBe(300n);
-		expect((await getTrackerAccount(mint, setup.user1.toBase58(), provider))?.totalAmount.toNumber()).toBe(300);
-	});
-
 	test("execution cannot redirect its rent refund", async () => {
 		const mint = await fixture(delayed());
 		const p = await proposal(mint);
@@ -379,24 +380,67 @@ describe.sequential("asset-controller mint controls", () => {
 		expect(await getPendingOperation(mint, p.operationId, provider)).not.toBeNull();
 	});
 
-	test("V2 account listing excludes pending operations", async () => {
-		const mint = await fixture(delayed());
-		await proposal(mint);
-		const listed = await getAssetControllerAccountsWithFilter({ assetMint: mint }, provider);
-		expect(listed?.length).toBe(1);
-		expect(listed?.[0].assetMint.toBase58()).toBe(mint);
+	test("legacy controllers retain issuance, revocation, freeze, metadata, memo, and seizure flows", async () => {
+		const mint = await fixture(null);
+		const legacy = await injectLegacy(mint);
+		const controllerBefore = await provider.connection.getAccountInfo(getAssetControllerPda(mint));
+		await issue(mint, 1_000);
+		await burn(mint, 100);
+		const args = { assetMint: mint, payer: setup.payer.toBase58(), authority: setup.authority.toBase58(), owner: setup.user1.toBase58() };
+		await send([await getFreezeTokenIx(args, provider)]);
+		await expect(burn(mint, 1)).rejects.toThrow(/frozen/i);
+		await send([await getThawTokenIx(args, provider)]);
+		await send([await getUpdateAssetMetadataIx({ ...args, name: "Legacy asset" }, provider)]);
+		const tokenAddress = getAssociatedTokenAddressSync(new PublicKey(mint), setup.user1, true, TOKEN_2022_PROGRAM_ID);
+		const memoArgs = { ...args, tokenAccount: tokenAddress.toBase58() };
+		await send([await getEnableMemoTransferIx(memoArgs, provider)]);
+		expect(getMemoTransfer(await getAccount(provider.connection, tokenAddress, "confirmed", TOKEN_2022_PROGRAM_ID))?.requireIncomingTransferMemos).toBe(true);
+		await send([await getDisableMemoTransferIx(memoArgs, provider)]);
+		expect(getMemoTransfer(await getAccount(provider.connection, tokenAddress, "confirmed", TOKEN_2022_PROGRAM_ID))?.requireIncomingTransferMemos).toBe(false);
+		const user = await getSetupUserIxs({ assetMint: mint, payer: args.payer, signer: args.authority, owner: setup.user2.toBase58(), levels: [1], expiry: [new BN(2_000_000_000)], country: 1 }, provider);
+		await send(user.ixs, user.signers);
+		await send(await getIssueTokensIx({ ...args, owner: setup.user2.toBase58(), amount: new BN(1), timestamp: new BN(1) }, provider));
+		await send(await getSeizeTokensIx({ assetMint: mint, authority: args.authority, from: args.owner, to: setup.user2.toBase58(), amount: new BN(100), reason: "Legacy seizure" }, provider));
+		expect(await balance(mint)).toBe(800n);
+		expect(await balance(mint, setup.user2)).toBe(101n);
+		expect((await getTrackerAccount(mint, args.owner, provider))?.totalAmount.toNumber()).toBe(800);
+		const controllerAfter = await provider.connection.getAccountInfo(getAssetControllerPda(mint));
+		expect(controllerAfter?.data).toEqual(legacy);
+		expect(controllerAfter?.lamports).toBe(controllerBefore?.lamports);
 	});
 
-	test("migrates exact legacy bytes using Anchor Migration, preserving authority and mint", async () => {
+	test("legacy controllers preserve authorization and reject V2-only controls without mutation", async () => {
+		const mint = await fixture(null);
+		const legacy = await injectLegacy(mint);
+		await issue(mint, 500);
+		const args = { assetMint: mint, payer: setup.payer.toBase58(), authority: setup.authority.toBase58(), owner: setup.user1.toBase58() };
+		await expect(send(await getIssueTokensIx({ ...args, authority: setup.user2.toBase58(), amount: new BN(1), timestamp: new BN(1) }, provider))).rejects.toThrow("InvalidAuthority");
+		await expect(send([await getRevokeTokensIx({ ...args, authority: setup.user2.toBase58(), amount: new BN(1), reason: "Unauthorized" }, provider)])).rejects.toThrow("InvalidAuthority");
+		const { maxMintPerTx, maxBurnPerTx, ...throttle } = delayed();
+		await expect(send([await getSetCapsConfigIx({ ...args, caps: { maxMintPerTx, maxBurnPerTx } }, provider)])).rejects.toThrow("AssetControllerMigrationRequired");
+		await expect(send([await getSetThrottleConfigIx({ ...args, throttle }, provider)])).rejects.toThrow("AssetControllerMigrationRequired");
+		const id = Array.from(generateOperationId());
+		await expect(send([await getProposeMintIx({ ...args, request: { id, amount: new BN(300), issuanceTimestamp: new BN(1) } }, provider)])).rejects.toThrow("AssetControllerMigrationRequired");
+		await expect(send([await getProposeBurnIx({ ...args, request: { id, amount: new BN(300), reason: "Legacy burn" } }, provider)])).rejects.toThrow("AssetControllerMigrationRequired");
+		expect(await getPendingOperation(mint, Uint8Array.from(id), provider)).toBeNull();
+		expect(await balance(mint)).toBe(500n);
+		expect((await provider.connection.getAccountInfo(getAssetControllerPda(mint)))?.data).toEqual(legacy);
+	});
+
+	test("migrates one legacy controller while another remains usable with its original layout", async () => {
 		const mint = await fixture(null);
 		const address = getAssetControllerPda(mint);
-		const legacy = Buffer.concat([Buffer.from([70, 136, 149, 138, 12, 87, 52, 105, 1]), new PublicKey(mint).toBuffer(), setup.authority.toBuffer()]);
-		const response = await fetch(provider.connection.rpcEndpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "surfnet_setAccount", params: [address.toBase58(), { data: legacy.toString("hex"), owner: assetControllerProgramId.toBase58(), lamports: await provider.connection.getMinimumBalanceForRentExemption(legacy.length) }] }) });
-		const result = await response.json() as { error?: unknown };
-		expect(result.error).toBeUndefined();
+		// A V1 allocation can already be V2-sized; only its version selects the schema.
+		const legacy = await injectLegacy(mint, 89);
+		expect(legacy.length).toBe(162);
+		const otherMint = await fixture(null);
+		await injectLegacy(otherMint);
 		expect((await getLegacyAssetControllerAccount(mint, provider))?.authority.equals(setup.authority)).toBe(true);
-		expect(await getAssetControllerAccountsWithFilter({ assetMint: mint }, provider)).toEqual([]);
-		await expect(issue(mint, 1)).rejects.toThrow();
+		expect((await getAssetControllerAccount(mint, provider))?.version).toBe(1);
+		expect((await getAssetControllerAccountsWithFilter({ assetMint: mint }, provider))?.[0].version).toBe(1);
+		await issue(mint, 1);
+		await burn(mint, 1);
+		expect((await provider.connection.getAccountInfo(address))?.data).toEqual(legacy);
 		const args = { assetMint: mint, payer: setup.payer.toBase58(), authority: setup.authority.toBase58() };
 		const unauthorized = await getMigrateAssetControllerIx({ ...args, authority: setup.user1.toBase58() }, provider);
 		await expect(send([unauthorized])).rejects.toThrow("InvalidAuthority");
@@ -406,7 +450,7 @@ describe.sequential("asset-controller mint controls", () => {
 		expect(migrated?.version).toBe(2);
 		expect(migrated?.assetMint.toBase58()).toBe(mint);
 		expect(migrated?.authority.equals(setup.authority)).toBe(true);
-		expect(migrated?.throttle.enabled).toBe(false);
+		expect(migrated?.version === 2 && migrated.throttle.enabled).toBe(false);
 		expect((await provider.connection.getAccountInfo(address))?.data.length).toBe(162);
 		await expect(send([ix])).rejects.toThrow("InvalidLegacyAssetController");
 		await issue(mint, 1);
@@ -416,15 +460,15 @@ describe.sequential("asset-controller mint controls", () => {
 		await send([await getThawTokenIx(accountArgs, provider)]);
 		await burn(mint, 1);
 		expect(await balance(mint)).toBe(0n);
-	});
-
-	test("SDK IDs are explicit 32-byte values and are preserved across retries", async () => {
-		const mint = Keypair.generate().publicKey.toBase58();
-		const id = generateOperationId();
-		expect(id).toHaveLength(32);
-		expect(getPendingOperationPda(mint, id).equals(getPendingOperationPda(mint, Uint8Array.from(id)))).toBe(true);
-		expect(() => getPendingOperationPda(mint, id.slice(0, 31))).toThrow("Expected exactly 32 bytes");
-		await expect(getProposeMintIx({ assetMint: mint, payer: setup.payer.toBase58(), authority: setup.authority.toBase58(), owner: setup.user1.toBase58(), request: { id: [1], amount: new BN(1), issuanceTimestamp: new BN(0) } }, provider)).rejects.toThrow("Expected exactly 32 bytes");
+		await configure(mint, config({ maxMintPerTx: new BN(1) }));
+		await expect(issue(mint, 2)).rejects.toThrow("OperationCapExceeded");
+		await issue(otherMint, 2_000);
+		expect(await balance(otherMint)).toBe(2_000n);
+		expect((await getAssetControllerAccount(otherMint, provider))?.version).toBe(1);
+		expect((await provider.connection.getAccountInfo(getAssetControllerPda(otherMint)))?.data.length).toBe(73);
+		const listed = await getAssetControllerAccountsWithFilter({ authority: setup.authority.toBase58() }, provider);
+		expect(listed?.find(account => account.assetMint.toBase58() === mint)?.version).toBe(2);
+		expect(listed?.find(account => account.assetMint.toBase58() === otherMint)?.version).toBe(1);
 	});
 
 	test("burns above the threshold require a proposal and execute through the shared path", async () => {
@@ -502,33 +546,23 @@ describe.sequential("asset-controller mint controls", () => {
 		expect(await balance(mint)).toBe(500n);
 	});
 
-	test("shared expiry prevents a late burn and refunds the closed pending account", async () => {
-		const mint = await fixture(null);
-		await issue(mint, 500);
-		await configure(mint, delayed({ pendingOperationGracePeriod: new BN(2) }));
-		const p = await burnProposal(mint);
-		const ixs = await executeIx(mint, p.operationId);
-		await waitUntil(p.pending.expiresAt);
-		await expect(send(ixs)).rejects.toThrow("PendingOperationExpired");
-		const signature = await send([await getExpirePendingIx({ assetMint: mint, operationId: p.operationId }, provider)]);
-		expect(await events(signature)).toContain("operationExpired");
-		expect(await getPendingOperation(mint, p.operationId, provider)).toBeNull();
-		expect(await balance(mint)).toBe(500n);
-	});
-
-	test("delayed burns support attached wallets and the shared identity tracker", async () => {
+	test("delayed mint and burn resolve attached wallets and share identity accounting", async () => {
 		const mint = await fixture(null);
 		await send([await getAttachWalletToIdentityIx({ assetMint: mint, payer: setup.payer.toBase58(), authority: setup.authority.toBase58(), owner: setup.user1.toBase58(), wallet: setup.user2.toBase58() }, provider)]);
 		await issue(mint, 500, setup.user2.toBase58());
 		await configure(mint, delayed());
-		const p = await burnProposal(mint, 300, setup.user2.toBase58());
-		await waitUntil(p.pending.effectiveAt);
-		await send(await executeIx(mint, p.operationId));
-		expect(await balance(mint, setup.user2)).toBe(200n);
-		expect((await getTrackerAccount(mint, setup.user1.toBase58(), provider))?.totalAmount.toNumber()).toBe(200);
+		const queuedMint = await proposal(mint, setup.user2.toBase58());
+		const queuedBurn = await burnProposal(mint, 300, setup.user2.toBase58());
+		await waitUntil(BN.max(queuedMint.pending.effectiveAt, queuedBurn.pending.effectiveAt));
+		await send(await executeIx(mint, queuedMint.operationId));
+		expect(await balance(mint, setup.user2)).toBe(800n);
+		expect((await getTrackerAccount(mint, setup.user1.toBase58(), provider))?.totalAmount.toNumber()).toBe(800);
+		await send(await executeIx(mint, queuedBurn.operationId));
+		expect(await balance(mint, setup.user2)).toBe(500n);
+		expect((await getTrackerAccount(mint, setup.user1.toBase58(), provider))?.totalAmount.toNumber()).toBe(500);
 		await send([await getRevokeTokensIx({ assetMint: mint, authority: setup.authority.toBase58(), owner: setup.user1.toBase58(), wallet: setup.user2.toBase58(), amount: new BN(100), reason: "attached-wallet revocation" }, provider)]);
-		expect(await balance(mint, setup.user2)).toBe(100n);
-		expect((await getTrackerAccount(mint, setup.user1.toBase58(), provider))?.totalAmount.toNumber()).toBe(100);
+		expect(await balance(mint, setup.user2)).toBe(400n);
+		expect((await getTrackerAccount(mint, setup.user1.toBase58(), provider))?.totalAmount.toNumber()).toBe(400);
 	});
 
 	test("caller IDs collide across kinds and changed payloads while pending", async () => {
@@ -536,6 +570,7 @@ describe.sequential("asset-controller mint controls", () => {
 		await issue(mint, 500);
 		await configure(mint, delayed());
 		const p = await proposal(mint);
+		await expect(send([p.ix])).rejects.toThrow();
 		const changedMint = await getProposeMintIx({ ...p.args, request: { ...p.args.request, amount: new BN(301), issuanceTimestamp: new BN(999) } }, provider);
 		await expect(send([changedMint])).rejects.toThrow();
 		const request = { id: p.args.request.id, amount: p.args.request.amount, reason: "é".repeat(128) };
@@ -547,6 +582,9 @@ describe.sequential("asset-controller mint controls", () => {
 		const newId = generateOperationId();
 		await send([await getProposeBurnIx({ ...p.args, request: { ...request, id: Array.from(newId) } }, provider)]);
 		expect(await getPendingOperation(mint, newId, provider)).not.toBeNull();
-		await expect(getProposeBurnIx({ ...p.args, request: { ...request, reason: "é".repeat(129) } }, provider)).rejects.toThrow("256 UTF-8 bytes");
+		expect(await getPendingOperations(mint, provider)).toHaveLength(2);
+		const listed = await getAssetControllerAccountsWithFilter({ assetMint: mint }, provider);
+		expect(listed).toHaveLength(1);
+		expect(listed?.[0].assetMint.toBase58()).toBe(mint);
 	});
 });

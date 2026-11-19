@@ -205,28 +205,57 @@ are exported directly and through `AssetController` methods.
 The PDA remains `[mint]`, and migration preserves mint and authority. V2 preserves the
 original `account:AssetControllerAccount` discriminator and field prefix. The
 serialized version byte distinguishes V1 from V2; it is not a new account identity.
-V1 accounts are 73 bytes; V2 accounts are 162 bytes.
+The serialized V1 layout is 73 bytes; V2 is 162 bytes. Allocations may contain padding.
 `migrate_asset_controller` uses Anchor's `Migration` container to check legacy
 ownership/discriminator, validate the authority and mint/PDA, fund rent, and resize.
 The version-1 guard rejects non-V1 versions and repeat migration, including V2
 accounts with the same discriminator. No unchecked legacy writes or
-implicit migration are performed. SDK `getLegacyAssetControllerAccount` reads V1
-for planning; ordinary getters decode V2 and propagate incompatible-layout errors.
-Listing applies both discriminator and version-2 filters so mixed V1/V2 deployments
-do not try to decode a legacy account as V2.
+implicit migration are performed. Existing operations accept both versions through
+the controller's version-aware Anchor account codec. V1 decodes with disabled
+controls in memory and serializes back to its original 73-byte layout; ordinary
+issuance, revocation, freeze/thaw, seizure, metadata, and memo operations remain
+available without reallocating or migrating the controller. Unknown versions and
+truncated layouts are rejected. Trailing allocation padding is accepted, as with
+Anchor's generated Borsh codec; the version byte selects the layout. Temporary
+account traits and the V1 schema live in `state/legacy_asset_controller.rs`, following
+the compatibility-module pattern used by the RBAC program. The unchecked path uses
+the V2 Borsh decoder for Anchor initialization; checked reads enforce the version.
 
-Coordinate the program upgrade, authority-signed migrations, and updated SDK/RBAC
-wrappers. **All ACP operations that deserialize the controller require migration
-first**, including freeze/thaw and metadata, not just mint/burn. Limits remain
-disabled until explicitly configured. The flattened issuance account order remains
+Configuration and pending-operation instructions require V2 and return
+`AssetControllerMigrationRequired` for V1. The V1 serializer also rejects non-default
+control fields rather than silently discarding unpersistable state. Migration is
+explicit and authority-controlled; existing accounts can remain V1 while others
+use V2 controls. Limits start disabled after migration and must be configured.
+
+SDK `getAssetControllerAccount` and filtered listing return both versions as a
+discriminated union: check `account.version === 2` before accessing caps, throttle,
+or consumption fields. `getLegacyAssetControllerAccount` remains available for
+migration planning. The generated Anchor coder describes the V2 layout only;
+use the SDK getters for mixed-version reads. The Rust Geyser decoder handles both.
+
+Coordinate authority-signed migration and configuration with updated SDK/RBAC
+wrappers; the production RBAC migration CPI remains a separate integration.
+The flattened issuance account order remains
 the same, but ACP is now writable; public instruction accounts remain flat.
 Immediate and pending handlers share typed borrowed CPI helpers for minting,
 revocation, and PE accounting. Never deploy localnet-feature binaries
 to devnet/mainnet to bypass the production RBAC authority requirement.
 
 `tests/mint-controls.test.ts` exercises real transactions on Surfpool, including
-legacy-byte fixtures injected only for migration testing. It uses cluster-clock
-polling rather than global time travel so other suites' clocks are unaffected.
+legacy-byte fixtures injected for compatibility and migration testing. It verifies
+legacy operations preserve account bytes/rent, mixed-version listing, V2-only
+controls, and migration of one asset while another remains usable as V1. Fixtures
+batch creation, identity setup, and initial controls in one transaction. Independent
+mint/burn lifecycle cases share waits where appropriate; cluster-clock polling
+does not change other suites' clocks. Shared funding setup waits for confirmed
+airdrops rather than finalized roots. SDK-only encoding/decoding tests live in
+`tests/mint-controls.unit.test.ts` and need no validator or environment wallet:
+
+```sh
+cd clients/rwa-token-sdk
+corepack yarn vitest run tests/mint-controls.unit.test.ts
+```
+
 Run a focused suite with `anchor test mint-controls.test.ts -- --features localnet`.
 Devnet acceptance requires the production RBAC wrappers/permissions and migrated
 assets; the local authority fixtures do not prove that integration.

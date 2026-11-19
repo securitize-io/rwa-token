@@ -22,7 +22,8 @@ export async function setupTests() {
 		provider.connection.requestAirdrop(user4Kp.publicKey, LAMPORTS_PER_SOL),
 	]);
 
-	await Promise.all(txns.map((txn) => provider.connection.confirmTransaction(txn, "finalized")));
+	// Confirm funding before use; these tests do not need finalized-root latency.
+	await Promise.all(txns.map((txn) => provider.connection.confirmTransaction(txn, "confirmed")));
 
 
 	return {

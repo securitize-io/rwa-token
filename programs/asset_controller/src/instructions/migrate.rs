@@ -20,7 +20,7 @@ pub struct MigrateAssetController<'info> {
         bump,
         has_one = asset_mint,
         has_one = authority @ AssetControllerErrors::InvalidAuthority,
-        constraint = asset_controller.version == 1 @ AssetControllerErrors::InvalidLegacyAssetController,
+        constraint = asset_controller.version == AssetControllerAccount::LEGACY_VERSION @ AssetControllerErrors::InvalidLegacyAssetController,
         realloc = 8 + AssetControllerAccount::INIT_SPACE,
         realloc::payer = payer,
         realloc::zero = false,

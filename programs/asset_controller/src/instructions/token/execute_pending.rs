@@ -23,6 +23,7 @@ pub struct ExecutePending<'info> {
         bump,
         has_one = asset_mint,
         has_one = authority @ AssetControllerErrors::InvalidAuthority,
+        constraint = asset_controller.version == AssetControllerAccount::VERSION @ AssetControllerErrors::AssetControllerMigrationRequired,
     )]
     pub asset_controller: Box<Account<'info, AssetControllerAccount>>,
     /// CHECK: can be any account

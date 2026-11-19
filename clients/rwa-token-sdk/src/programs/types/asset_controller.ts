@@ -1852,6 +1852,11 @@ export type AssetController = {
       "code": 6027,
       "name": "burnReasonTooLong",
       "msg": "Burn reason exceeds 256 UTF-8 bytes"
+    },
+    {
+      "code": 6028,
+      "name": "assetControllerMigrationRequired",
+      "msg": "Migrate the asset controller to V2 before using mint/burn controls"
     }
   ],
   "types": [

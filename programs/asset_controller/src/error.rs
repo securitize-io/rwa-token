@@ -58,4 +58,6 @@ pub enum AssetControllerErrors {
     InvalidLegacyAssetController,
     #[msg("Burn reason exceeds 256 UTF-8 bytes")]
     BurnReasonTooLong,
+    #[msg("Migrate the asset controller to V2 before using mint/burn controls")]
+    AssetControllerMigrationRequired,
 }

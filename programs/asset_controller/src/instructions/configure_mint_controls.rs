@@ -18,6 +18,7 @@ pub struct ConfigureMintControls<'info> {
         bump,
         has_one = asset_mint,
         has_one = authority @ AssetControllerErrors::InvalidAuthority,
+        constraint = asset_controller.version == AssetControllerAccount::VERSION @ AssetControllerErrors::AssetControllerMigrationRequired,
     )]
     pub asset_controller: Account<'info, AssetControllerAccount>,
     pub token_program: Program<'info, Token2022>,
