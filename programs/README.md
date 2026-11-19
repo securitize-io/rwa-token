@@ -121,8 +121,118 @@ Existing mints already have an initialized extra-metas account. If its schema ch
 
 ## State, sizing, and compatibility
 
+### Mint/burn controls and pending operations (ACP V2)
+
+ACP V2 stores `caps: CapsConfig`, `throttle: ThrottleConfig`, and
+`state: ThrottleState` directly in the controller, following the BC-2263 structure.
+New and migrated assets start disabled. Authority-signed `set_caps_config` and
+`set_throttle_config` updates preserve consumption and the window start.
+
+Amounts are token base units (`u64`). Individual zero caps are unlimited. When
+throttling is enabled, mint and burn have separate single-instruction ceilings
+and cumulative budgets, with one activity-anchored tumbling window. The first
+successful operation at/after expiry resets both counters. Burns do not replenish
+mint capacity. Disabling controls skips enforcement/accounting without clearing
+old consumption; changing the duration reinterprets the old start. With a zero
+duration, enabled counters accumulate without rolling over, as in BC-2263.
+Arithmetic is checked; nonzero window caps require a positive duration.
+
+**Both mint and burn** amounts above `large_amount_threshold` require a proposal.
+Equality executes immediately. A zero threshold disables mandatory routing and
+permits voluntary proposals when enabled with a positive grace period. Threshold,
+delay, and `pending_operation_grace_period` are shared by both operation kinds.
+
+- `propose_mint(MintRequest)` binds the destination wallet/identity/ATA, amount,
+  issuance timestamp, and explicit 32-byte operation ID. The ATA need not exist yet.
+- `propose_burn(BurnRequest)` binds an existing source token account, its current
+  wallet/identity, amount, reason, and operation ID. Reasons are at most 256 UTF-8 bytes.
+- `execute_pending` reads the stored payload and dispatches to the same mint/burn
+  CPI and policy-accounting helpers used by immediate issuance/revocation. The
+  caller supplies no replacement payload or operation kind. Current caps, token
+  owner/mint, wallet link, identity, and tracker relationships are checked again.
+- `cancel_pending` is authority-controlled; `expire_pending` allows anyone to
+  clean up after expiry. Both refund only the original recorded payer.
+
+`effective_at = proposal_time + large_amount_delay` and
+`expires_at = effective_at + pending_operation_grace_period` are snapshots.
+Execution requires `effective_at <= Clock::unix_timestamp < expires_at`; early
+and expired execution revert. Configuration changes and disabled controls cannot
+bypass the stored interval. Issuance/backdating timestamps do not affect the clock.
+Proposals reserve neither quota nor token balance. A burn may fail if its source
+balance falls while pending; any CPI/policy failure rolls back token changes,
+consumption, and tracker/counter writes atomically, leaving the operation pending.
+Hard caps apply to immediate and delayed operations. Splitting amounts at/below
+the threshold avoids mandatory delay while still consuming the window budget.
+
+The common executor takes an **existing** typed token account; it has no unconditional
+mint-only `init_if_needed` side effect. SDK `getExecutePendingIxs` prepares the mint
+ATA idempotently before execution; burns get only the executor instruction. The
+low-level `getExecutePendingIx` requires preparation by the caller. Its payer funds
+mint tracker growth; the burn branch never creates a token account.
+
+Operation IDs are explicit caller-supplied `[u8; 32]` values, matching the
+reference's model. The program performs no operation-ID hashing. Both proposal
+instructions accept `request.id`; the pending PDA is
+`[b"pending_operation", mint, id]`. IDs are unique per mint across both kinds, so
+reusing an ID while pending collides even if kind, amount, reason, timestamp, or
+other parameters are changed. The original stored payload cannot be overwritten.
+SDK `generateOperationId()` is optional: save its result and reuse it across
+retries. Builders never silently generate a new ID. Use a different ID for an
+intentionally distinct operation.
+
+**There are no receipts or permanent terminal accounts.** Duplicate proposals
+collide while the PDA exists. Execution, cancellation, or expiry closes it and
+refunds all pending rent. The same ID can then be proposed again with a fresh
+execution interval, matching the reference's lifecycle; this is not permanent
+business-request replay protection. Expired accounts remain listed
+until cleanup. `OperationProposed`, `OperationExecuted`, `OperationCancelled`, and
+`OperationExpired` CPI events provide terminal history after closure; execution
+also preserves the existing `IssueEvent` or `RevokeEvent`. Expiry emits its event
+when cleanup is submitted, not automatically when time passes.
+
+RBAC role assignments and CPI wrappers are a separate integration. Proposal and
+execution require payer + authority signer roles; cancellation requires authority
+only; expiry has no instruction signer requirement. There are no additional human
+actor signers. Events and `PendingOperation.proposer` identify the authorizing PDA;
+RBAC owns human attribution, optional proposer-revocation rules, and separation of
+duties. RBAC must select permissions from the **stored operation kind** for the
+common execute/cancel path, never from a caller-provided kind or solely its shared
+instruction discriminator. ACP must be writable for supply operations. SDK builders
+are exported directly and through `AssetController` methods.
+
+#### V1 → V2 rollout
+
+The PDA remains `[mint]`, and migration preserves mint and authority. V2 preserves the
+original `account:AssetControllerAccount` discriminator and field prefix. The
+serialized version byte distinguishes V1 from V2; it is not a new account identity.
+V1 accounts are 73 bytes; V2 accounts are 162 bytes.
+`migrate_asset_controller` uses Anchor's `Migration` container to check legacy
+ownership/discriminator, validate the authority and mint/PDA, fund rent, and resize.
+The version-1 guard rejects non-V1 versions and repeat migration, including V2
+accounts with the same discriminator. No unchecked legacy writes or
+implicit migration are performed. SDK `getLegacyAssetControllerAccount` reads V1
+for planning; ordinary getters decode V2 and propagate incompatible-layout errors.
+Listing applies both discriminator and version-2 filters so mixed V1/V2 deployments
+do not try to decode a legacy account as V2.
+
+Coordinate the program upgrade, authority-signed migrations, and updated SDK/RBAC
+wrappers. **All ACP operations that deserialize the controller require migration
+first**, including freeze/thaw and metadata, not just mint/burn. Limits remain
+disabled until explicitly configured. The flattened issuance account order remains
+the same, but ACP is now writable; public instruction accounts remain flat.
+Immediate and pending handlers share typed borrowed CPI helpers for minting,
+revocation, and PE accounting. Never deploy localnet-feature binaries
+to devnet/mainnet to bypass the production RBAC authority requirement.
+
+`tests/mint-controls.test.ts` exercises real transactions on Surfpool, including
+legacy-byte fixtures injected only for migration testing. It uses cluster-clock
+polling rather than global time travel so other suites' clocks are unaffected.
+Run a focused suite with `anchor test mint-controls.test.ts -- --features localnet`.
+Devnet acceptance requires the production RBAC wrappers/permissions and migrated
+assets; the local authority fixtures do not prove that integration.
+
 - Preserve existing account layouts, instruction signatures, enum variant order, error numbers, event schemas, and PDA seeds unless the task explicitly changes compatibility. Append error variants without shifting existing codes. Preserve public spellings such as `ComparisionType` unless deliberately migrating the API.
-- Account structs carry versions, but these programs have no implemented account migration instructions. Anchor 1.x provides a `Migration` account type that can be used when deliberately adding them. A layout change needs a concrete strategy for existing accounts; merely changing `VERSION` is insufficient. Also inspect Geyser deserializers in each `src/state/mod.rs` and SDK account decoders.
+- Account versions alone do not migrate data. ACP has an explicit V1 → V2 migration using Anchor's `Migration` container; IRP and PE have no migration instructions. Every layout change needs a concrete strategy for existing accounts. Also inspect Geyser deserializers in each `src/state/mod.rs` and SDK account decoders.
 - Update all space calculations when changing dynamic state: `INIT_SPACE`, `#[max_len]`, `get_space`/`get_new_space`, `TrackerAccount::get_current_space`, and each instruction's realloc/rent handling. Include the 8-byte account discriminator and Borsh vector/string prefixes where applicable. `#[max_len]` sizes allocations; add runtime bounds for untrusted inputs.
 - Exercise account growth and shrinkage, not just initial creation. Cover nested filters, multiple counters, issuance records, and lock reason strings. Check rent top-ups/refunds, payer mutability/signatures, account growth limits, and serialization after realloc.
 - Use checked arithmetic and explicit errors for balances, counters, timestamps, lock sums, space deltas, and percentage calculations. Validate vector lengths, indices, duplicate IDs, referenced counters, and zero denominators before indexing, removal, or division.
@@ -149,6 +259,7 @@ These are review hotspots in the current implementation, not guarantees that the
 | Transfer tracker accounting | `tracker.test.ts` |
 | Policy configuration and filters | `policies.test.ts` |
 | Supply cap and backdating | `issuance_policies.test.ts` |
+| Mint/burn caps, timelock, expiry, replay protection, ACP migration | `mint-controls.test.ts` |
 | Counter configuration/mapping | `counter.test.ts` |
 | Balance and holder constraints | `policies/balance_limit.test.ts`, `policies/holder_limit.test.ts`, `policies/grouped_holder_limit.test.ts` |
 | Identity attribute enforcement | `policies/level_change_policies.test.ts` |

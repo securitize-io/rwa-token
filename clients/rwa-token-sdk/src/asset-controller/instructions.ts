@@ -1,3 +1,4 @@
+import { getIssuanceAccounts } from "./issuance";
 
 
 import {
@@ -150,26 +151,13 @@ export async function getIssueTokensIx(
 	const ix = await assetProgram.methods
 		.issueTokens(args.amount, args.timestamp || new BN( Date.now() / 1000))
 		.accountsStrict({
-			payer: new PublicKey(args.payer),
-			authority: new PublicKey(args.authority),
-			assetMint: new PublicKey(args.assetMint),
-			assetController: getAssetControllerPda(args.assetMint),
-			policyEngine: getPolicyEnginePda(args.assetMint),
-			policyEngineProgram: policyEngineProgramId,
-			identityAccount: getIdentityAccountPda(args.assetMint, args.owner),
-			trackerAccount: getTrackerAccountPda(args.assetMint, args.owner),
-			identityRegistry: getIdentityRegistryPda(args.assetMint),
-			tokenProgram: TOKEN_2022_PROGRAM_ID,
-			tokenAccount: getAssociatedTokenAddressSync(
-				new PublicKey(args.assetMint),
-				new PublicKey(args.wallet || args.owner),
-				true,
-				TOKEN_2022_PROGRAM_ID
-			),
-			associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-			systemProgram: SystemProgram.programId,
-			to: new PublicKey(args.wallet || args.owner),
-			walletIdentityAccount: getWalletIdentityAccountPda(args.assetMint, args.wallet || args.owner),
+			...getIssuanceAccounts({
+				payer: args.payer,
+				authority: args.authority,
+				assetMint: args.assetMint,
+				wallet: args.wallet || args.owner,
+				identityAccount: getIdentityAccountPda(args.assetMint, args.owner),
+			}),
 			eventAuthority: getAssetControllerEventAuthority(),
 			program: assetControllerProgramId,
 		})
@@ -567,7 +555,7 @@ export async function getRevokeTokensIx(
 			assetController: getAssetControllerPda(args.assetMint),
 			revokeTokenAccount: getAssociatedTokenAddressSync(
 				new PublicKey(args.assetMint),
-				new PublicKey(args.owner),
+				new PublicKey(args.wallet || args.owner),
 				true,
 				TOKEN_2022_PROGRAM_ID
 			),

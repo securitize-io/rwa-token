@@ -1,3 +1,6 @@
+pub(crate) mod issuance;
+pub(crate) mod revocation;
+
 use anchor_lang::{
     prelude::Result,
     solana_program::{program::invoke, system_instruction::transfer},

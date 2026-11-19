@@ -40,8 +40,12 @@ export const getPolicyEnginePda = (assetMint: string) =>
  * @returns The asset controller's tracker pda.
  */
 export const getTrackerAccountPda = (assetMint: string, owner: string) =>
+	getTrackerAccountPdaFromIdentity(assetMint, getIdentityAccountPda(assetMint, owner));
+
+/** Derive a tracker when the identity PDA is already known, without an extra RPC lookup. */
+export const getTrackerAccountPdaFromIdentity = (assetMint: string, identityAccount: PublicKey) =>
 	PublicKey.findProgramAddressSync(
-		[new PublicKey(assetMint).toBuffer(), getIdentityAccountPda(assetMint, owner).toBuffer()],
+		[new PublicKey(assetMint).toBuffer(), identityAccount.toBuffer()],
 		policyEngineProgramId
 	)[0];
 
