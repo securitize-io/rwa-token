@@ -20,7 +20,7 @@ pub struct CreateTrackerAccount<'info> {
         seeds::program = IDENTITY_REGISTRY_PROGRAMID,
         bump,
     )]
-    pub identity_account: AccountInfo<'info>,
+    pub identity_account: UncheckedAccount<'info>,
     #[account(has_one = asset_mint, signer)]
     pub identity_registry: Box<Account<'info, IdentityRegistryAccount>>,
     #[account()]

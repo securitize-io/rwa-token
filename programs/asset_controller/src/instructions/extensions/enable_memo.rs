@@ -71,7 +71,7 @@ impl<'info> EnableMemoTransfer<'info> {
             account: self.token_account.to_account_info(),
             owner: self.owner.to_account_info(),
         };
-        let cpi_ctx = CpiContext::new(self.token_program.to_account_info(), cpi_accounts);
+        let cpi_ctx = CpiContext::new(self.token_program.key(), cpi_accounts);
         memo_transfer_initialize(cpi_ctx)?;
         Ok(())
     }

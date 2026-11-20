@@ -1,8 +1,8 @@
-import { type Idl, Program, type Provider, utils } from "@coral-xyz/anchor";
+import { type Idl, Program, type Provider, utils } from "@anchor-lang/core";
 import { PublicKey } from "@solana/web3.js";
 import { type IdentityRegistryIdlTypes } from "../programs/types";
 
-import * as IdentityRegistryIdl from "../programs/idls/IdentityRegistry.json";
+import * as IdentityRegistryIdl from "../programs/idls/identity_registry.json";
 
 /** Address of the identity registry program. */
 export const identityRegistryProgramId = new PublicKey("GZsnjqT3c5zbHqsctrJ4EG4rbEfo7ZXyyUG7aDJNmxfA");

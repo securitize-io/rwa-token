@@ -1,30 +1,32 @@
-use crate::{state::*, RevokeEvent};
+use crate::utils::revocation::RevocationAccounts;
+use crate::{state::*, AssetControllerErrors, RevokeEvent};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token_2022::{burn, Burn},
     token_interface::{Mint, Token2022, TokenAccount},
 };
 use identity_registry::{IdentityAccount, IdentityRegistryAccount, WalletIdentity};
 use policy_engine::{program::PolicyEngine, PolicyEngineAccount, TrackerAccount};
-use rwa_utils::get_bump_in_seed_form;
 
 #[derive(Accounts)]
 #[instruction()]
 #[event_cpi]
 pub struct RevokeTokens<'info> {
-    #[account(mut)]
     pub authority: Signer<'info>,
     #[account(mut)]
     pub asset_mint: Box<InterfaceAccount<'info, Mint>>,
     #[account(
+        mut,
         seeds = [asset_mint.key().as_ref()],
         bump,
-        constraint = asset_controller.authority == authority.key()
+        has_one = asset_mint,
+        has_one = authority @ AssetControllerErrors::InvalidAuthority
     )]
     pub asset_controller: Box<Account<'info, AssetControllerAccount>>,
     #[account(
         mut,
+        token::mint = asset_mint,
+        token::token_program = token_program,
         constraint = revoke_token_account.owner == wallet_identity_account.wallet
     )]
     pub revoke_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
@@ -32,7 +34,7 @@ pub struct RevokeTokens<'info> {
     pub identity_registry: Box<Account<'info, IdentityRegistryAccount>>,
     #[account(has_one = identity_registry)]
     pub identity_account: Box<Account<'info, IdentityAccount>>,
-    #[account(mut, has_one = asset_mint)]
+    #[account(mut, has_one = asset_mint, has_one = identity_account)]
     pub tracker_account: Box<Account<'info, TrackerAccount>>,
     pub policy_engine_program: Program<'info, PolicyEngine>,
     #[account(mut)]
@@ -44,56 +46,27 @@ pub struct RevokeTokens<'info> {
     pub system_program: Program<'info, System>,
 }
 
-impl<'info> RevokeTokens<'info> {
-    fn burn_tokens(&self, amount: u64, signer_seeds: &[&[&[u8]]]) -> Result<()> {
-        let accounts = Burn {
-            mint: self.asset_mint.to_account_info(),
-            authority: self.asset_controller.to_account_info(),
-            from: self.revoke_token_account.to_account_info(),
-        };
-        let cpi_ctx = CpiContext::new_with_signer(
-            self.token_program.to_account_info(),
-            accounts,
-            signer_seeds,
-        );
-        burn(cpi_ctx, amount)?;
-        Ok(())
-    }
-
-    fn update_counters_on_burn(&self, amount: u64, signer_seeds: &[&[&[u8]]]) -> Result<()> {
-        let accounts = policy_engine::cpi::accounts::UpdateCountersOnBurnAccounts {
-            asset_mint: self.asset_mint.to_account_info(),
-            policy_engine: self.policy_engine.to_account_info(),
-            destination_account: self.revoke_token_account.to_account_info(),
-            identity_registry: self.identity_registry.to_account_info(),
-            identity_account: self.identity_account.to_account_info(),
-            destination_tracker_account: self.tracker_account.to_account_info(),
-            asset_controller: self.asset_controller.to_account_info(),
-        };
-
-        let cpi_ctx = CpiContext::new_with_signer(
-            self.policy_engine_program.to_account_info(),
-            accounts,
-            signer_seeds,
-        );
-        policy_engine::cpi::update_counters_on_burn(cpi_ctx, amount)?;
-        Ok(())
-    }
-}
-
 pub fn handler<'info>(
-    ctx: Context<'_, '_, '_, 'info, RevokeTokens<'info>>,
+    ctx: Context<'info, RevokeTokens<'info>>,
     amount: u64,
     reason: String,
 ) -> Result<()> {
-    let asset_mint = ctx.accounts.asset_mint.key();
-    let signer_seeds = [
-        asset_mint.as_ref(),
-        &get_bump_in_seed_form(&ctx.bumps.asset_controller),
-    ];
-    ctx.accounts.burn_tokens(amount, &[&signer_seeds])?;
+    let now = Clock::get()?.unix_timestamp;
     ctx.accounts
-        .update_counters_on_burn(amount, &[&signer_seeds])?;
+        .asset_controller
+        .ensure_immediate(OperationKind::Burn, amount, now)?;
+    RevocationAccounts {
+        asset_mint: &ctx.accounts.asset_mint,
+        asset_controller: &mut ctx.accounts.asset_controller,
+        token_account: &ctx.accounts.revoke_token_account,
+        identity_registry: &ctx.accounts.identity_registry,
+        identity_account: &ctx.accounts.identity_account,
+        tracker_account: &ctx.accounts.tracker_account,
+        policy_engine: &ctx.accounts.policy_engine,
+        policy_engine_program: &ctx.accounts.policy_engine_program,
+        token_program: &ctx.accounts.token_program,
+    }
+    .burn_now(amount, now, ctx.bumps.asset_controller)?;
 
     emit_cpi!(RevokeEvent {
         amount,

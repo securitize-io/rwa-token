@@ -19,7 +19,6 @@ pub fn handler(
     ctx: Context<ChangeIssuancePolicies>,
     issuance_policies: IssuancePolicies,
 ) -> Result<()> {
-
     let previous_issuance_policies = ctx.accounts.policy_engine.issuance_policies.clone();
 
     ctx.accounts

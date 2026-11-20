@@ -14,6 +14,100 @@ export type AssetController = {
   },
   "instructions": [
     {
+      "name": "cancelPending",
+      "discriminator": [
+        74,
+        87,
+        109,
+        242,
+        64,
+        192,
+        151,
+        71
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "assetController"
+          ]
+        },
+        {
+          "name": "assetMint",
+          "relations": [
+            "assetController",
+            "pendingOperation"
+          ]
+        },
+        {
+          "name": "assetController",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "assetMint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "rentPayer",
+          "writable": true
+        },
+        {
+          "name": "pendingOperation",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  111,
+                  112,
+                  101,
+                  114,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "assetMint"
+              },
+              {
+                "kind": "account",
+                "path": "pendingOperation.id",
+                "account": "pendingOperation"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "eventAuthority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "createAssetController",
       "docs": [
         "create an rwa asset"
@@ -83,33 +177,7 @@ export type AssetController = {
           "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
         },
         {
-          "name": "eventAuthority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "eventAuthority"
         },
         {
           "name": "program"
@@ -173,33 +241,7 @@ export type AssetController = {
           "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
         },
         {
-          "name": "eventAuthority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "eventAuthority"
         },
         {
           "name": "program"
@@ -320,33 +362,215 @@ export type AssetController = {
           "address": "11111111111111111111111111111111"
         },
         {
-          "name": "eventAuthority",
+          "name": "eventAuthority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "executePending",
+      "discriminator": [
+        207,
+        36,
+        5,
+        220,
+        230,
+        106,
+        57,
+        181
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "assetController"
+          ]
+        },
+        {
+          "name": "assetMint",
+          "writable": true,
+          "relations": [
+            "assetController",
+            "identityRegistry",
+            "trackerAccount",
+            "policyEngine"
+          ]
+        },
+        {
+          "name": "assetController",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "assetMint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "wallet"
+        },
+        {
+          "name": "tokenAccount",
+          "writable": true
+        },
+        {
+          "name": "identityRegistry",
+          "relations": [
+            "identityAccount"
+          ]
+        },
+        {
+          "name": "identityAccount",
+          "relations": [
+            "trackerAccount",
+            "walletIdentityAccount"
+          ]
+        },
+        {
+          "name": "trackerAccount",
+          "writable": true
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "policyEngineProgram",
+          "address": "FsE8mCJyvgMzqJbfHbJQm3iuf3cRZC6n2vZi1Q8rQCy2"
+        },
+        {
+          "name": "policyEngine",
+          "writable": true
+        },
+        {
+          "name": "walletIdentityAccount"
+        },
+        {
+          "name": "rentPayer",
+          "writable": true
+        },
+        {
+          "name": "pendingOperation",
+          "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
                 "value": [
-                  95,
-                  95,
-                  101,
-                  118,
+                  112,
                   101,
                   110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
+                  100,
                   105,
+                  110,
+                  103,
+                  95,
+                  111,
+                  112,
+                  101,
+                  114,
+                  97,
                   116,
-                  121
+                  105,
+                  111,
+                  110
                 ]
+              },
+              {
+                "kind": "account",
+                "path": "assetMint"
+              },
+              {
+                "kind": "account",
+                "path": "pendingOperation.id",
+                "account": "pendingOperation"
               }
             ]
           }
+        },
+        {
+          "name": "eventAuthority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "expirePending",
+      "discriminator": [
+        70,
+        169,
+        9,
+        55,
+        182,
+        166,
+        196,
+        204
+      ],
+      "accounts": [
+        {
+          "name": "rentPayer",
+          "writable": true
+        },
+        {
+          "name": "pendingOperation",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  111,
+                  112,
+                  101,
+                  114,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pendingOperation.assetMint",
+                "account": "pendingOperation"
+              },
+              {
+                "kind": "account",
+                "path": "pendingOperation.id",
+                "account": "pendingOperation"
+              }
+            ]
+          }
+        },
+        {
+          "name": "eventAuthority"
         },
         {
           "name": "program"
@@ -423,19 +647,24 @@ export type AssetController = {
         },
         {
           "name": "authority",
-          "writable": true,
-          "signer": true
+          "signer": true,
+          "relations": [
+            "assetController"
+          ]
         },
         {
           "name": "assetMint",
           "writable": true,
           "relations": [
+            "assetController",
             "identityRegistry",
-            "trackerAccount"
+            "trackerAccount",
+            "policyEngine"
           ]
         },
         {
           "name": "assetController",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -514,6 +743,7 @@ export type AssetController = {
         {
           "name": "identityAccount",
           "relations": [
+            "trackerAccount",
             "walletIdentityAccount"
           ]
         },
@@ -545,33 +775,7 @@ export type AssetController = {
           "name": "walletIdentityAccount"
         },
         {
-          "name": "eventAuthority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "eventAuthority"
         },
         {
           "name": "program"
@@ -585,6 +789,322 @@ export type AssetController = {
         {
           "name": "issuanceTimestamp",
           "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "migrateAssetController",
+      "discriminator": [
+        96,
+        118,
+        61,
+        174,
+        136,
+        235,
+        144,
+        68
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "assetController"
+          ]
+        },
+        {
+          "name": "assetMint",
+          "relations": [
+            "assetController"
+          ]
+        },
+        {
+          "name": "assetController",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "assetMint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "eventAuthority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "proposeBurn",
+      "discriminator": [
+        107,
+        126,
+        69,
+        98,
+        100,
+        37,
+        148,
+        192
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "assetController"
+          ]
+        },
+        {
+          "name": "assetMint",
+          "relations": [
+            "assetController",
+            "identityRegistry"
+          ]
+        },
+        {
+          "name": "assetController",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "assetMint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "wallet"
+        },
+        {
+          "name": "tokenAccount"
+        },
+        {
+          "name": "identityRegistry",
+          "relations": [
+            "identityAccount"
+          ]
+        },
+        {
+          "name": "identityAccount",
+          "relations": [
+            "walletIdentityAccount"
+          ]
+        },
+        {
+          "name": "walletIdentityAccount"
+        },
+        {
+          "name": "pendingOperation",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  111,
+                  112,
+                  101,
+                  114,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "assetMint"
+              },
+              {
+                "kind": "arg",
+                "path": "request.id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "eventAuthority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "request",
+          "type": {
+            "defined": {
+              "name": "burnRequest"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "proposeMint",
+      "discriminator": [
+        57,
+        216,
+        81,
+        105,
+        92,
+        217,
+        84,
+        128
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "assetController"
+          ]
+        },
+        {
+          "name": "assetMint",
+          "relations": [
+            "assetController",
+            "identityRegistry"
+          ]
+        },
+        {
+          "name": "assetController",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "assetMint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "wallet"
+        },
+        {
+          "name": "tokenAccount"
+        },
+        {
+          "name": "identityRegistry",
+          "relations": [
+            "identityAccount"
+          ]
+        },
+        {
+          "name": "identityAccount",
+          "relations": [
+            "walletIdentityAccount"
+          ]
+        },
+        {
+          "name": "walletIdentityAccount"
+        },
+        {
+          "name": "pendingOperation",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  111,
+                  112,
+                  101,
+                  114,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "assetMint"
+              },
+              {
+                "kind": "arg",
+                "path": "request.id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "eventAuthority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "request",
+          "type": {
+            "defined": {
+              "name": "mintRequest"
+            }
+          }
         }
       ]
     },
@@ -606,19 +1126,23 @@ export type AssetController = {
       "accounts": [
         {
           "name": "authority",
-          "writable": true,
-          "signer": true
+          "signer": true,
+          "relations": [
+            "assetController"
+          ]
         },
         {
           "name": "assetMint",
           "writable": true,
           "relations": [
+            "assetController",
             "identityRegistry",
             "trackerAccount"
           ]
         },
         {
           "name": "assetController",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -641,6 +1165,7 @@ export type AssetController = {
         {
           "name": "identityAccount",
           "relations": [
+            "trackerAccount",
             "walletIdentityAccount"
           ]
         },
@@ -672,33 +1197,7 @@ export type AssetController = {
           "address": "11111111111111111111111111111111"
         },
         {
-          "name": "eventAuthority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "eventAuthority"
         },
         {
           "name": "program"
@@ -763,33 +1262,7 @@ export type AssetController = {
           "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
         },
         {
-          "name": "eventAuthority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "eventAuthority"
         },
         {
           "name": "program"
@@ -803,6 +1276,126 @@ export type AssetController = {
         {
           "name": "reason",
           "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "setCapsConfig",
+      "discriminator": [
+        216,
+        4,
+        112,
+        211,
+        176,
+        17,
+        227,
+        229
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "assetController"
+          ]
+        },
+        {
+          "name": "assetMint",
+          "relations": [
+            "assetController"
+          ]
+        },
+        {
+          "name": "assetController",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "assetMint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "eventAuthority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "caps",
+          "type": {
+            "defined": {
+              "name": "capsConfig"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "setThrottleConfig",
+      "discriminator": [
+        174,
+        119,
+        174,
+        249,
+        71,
+        43,
+        246,
+        174
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "assetController"
+          ]
+        },
+        {
+          "name": "assetMint",
+          "relations": [
+            "assetController"
+          ]
+        },
+        {
+          "name": "assetController",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "assetMint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "eventAuthority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "throttle",
+          "type": {
+            "defined": {
+              "name": "throttleConfig"
+            }
+          }
         }
       ]
     },
@@ -902,33 +1495,7 @@ export type AssetController = {
           "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
         },
         {
-          "name": "eventAuthority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "eventAuthority"
         },
         {
           "name": "program"
@@ -961,72 +1528,33 @@ export type AssetController = {
       ]
     },
     {
-      "name": "identityAccount",
-      "discriminator": [
-        194,
-        90,
-        181,
-        160,
-        182,
-        206,
-        116,
-        158
-      ]
-    },
-    {
-      "name": "identityRegistryAccount",
-      "discriminator": [
-        154,
-        254,
-        118,
-        4,
-        115,
-        36,
-        125,
-        78
-      ]
-    },
-    {
-      "name": "policyEngineAccount",
+      "name": "pendingOperation",
       "discriminator": [
         124,
-        85,
-        205,
-        80,
-        2,
-        18,
-        26,
-        45
-      ]
-    },
-    {
-      "name": "trackerAccount",
-      "discriminator": [
-        83,
-        95,
-        166,
-        148,
-        57,
-        30,
-        90,
-        210
-      ]
-    },
-    {
-      "name": "walletIdentity",
-      "discriminator": [
-        101,
-        142,
-        55,
-        104,
-        168,
-        77,
-        57,
-        85
+        146,
+        84,
+        123,
+        121,
+        210,
+        217,
+        118
       ]
     }
   ],
   "events": [
+    {
+      "name": "assetControllerMigrated",
+      "discriminator": [
+        98,
+        46,
+        167,
+        50,
+        30,
+        181,
+        16,
+        139
+      ]
+    },
     {
       "name": "assetMetadataEvent",
       "discriminator": [
@@ -1051,6 +1579,19 @@ export type AssetController = {
         124,
         238,
         250
+      ]
+    },
+    {
+      "name": "capsUpdated",
+      "discriminator": [
+        147,
+        181,
+        117,
+        249,
+        72,
+        147,
+        156,
+        255
       ]
     },
     {
@@ -1080,6 +1621,58 @@ export type AssetController = {
       ]
     },
     {
+      "name": "operationCancelled",
+      "discriminator": [
+        35,
+        79,
+        124,
+        242,
+        195,
+        248,
+        114,
+        0
+      ]
+    },
+    {
+      "name": "operationExecuted",
+      "discriminator": [
+        205,
+        223,
+        227,
+        106,
+        178,
+        86,
+        163,
+        162
+      ]
+    },
+    {
+      "name": "operationExpired",
+      "discriminator": [
+        105,
+        3,
+        61,
+        154,
+        56,
+        106,
+        8,
+        244
+      ]
+    },
+    {
+      "name": "operationProposed",
+      "discriminator": [
+        252,
+        68,
+        199,
+        155,
+        10,
+        17,
+        178,
+        206
+      ]
+    },
+    {
       "name": "revokeEvent",
       "discriminator": [
         87,
@@ -1103,6 +1696,19 @@ export type AssetController = {
         98,
         208,
         78
+      ]
+    },
+    {
+      "name": "throttleUpdated",
+      "discriminator": [
+        210,
+        7,
+        158,
+        29,
+        147,
+        253,
+        143,
+        139
       ]
     }
   ],
@@ -1145,7 +1751,7 @@ export type AssetController = {
     {
       "code": 6007,
       "name": "unauthorized",
-      "msg": "unauthorized"
+      "msg": "Unauthorized"
     },
     {
       "code": 6008,
@@ -1171,6 +1777,86 @@ export type AssetController = {
       "code": 6012,
       "name": "invalidAuthority",
       "msg": "Invalid authority"
+    },
+    {
+      "code": 6013,
+      "name": "invalidMintControlsConfig",
+      "msg": "Invalid mint controls configuration"
+    },
+    {
+      "code": 6014,
+      "name": "mintControlsUnchanged",
+      "msg": "Mint controls configuration is unchanged"
+    },
+    {
+      "code": 6015,
+      "name": "mintControlsDisabled",
+      "msg": "Mint controls are disabled"
+    },
+    {
+      "code": 6016,
+      "name": "operationCapExceeded",
+      "msg": "Amount exceeds the single-operation ceiling"
+    },
+    {
+      "code": 6017,
+      "name": "windowCapExceeded",
+      "msg": "Amount exceeds the cumulative window cap"
+    },
+    {
+      "code": 6018,
+      "name": "amountRequiresTimelock",
+      "msg": "Operation amount requires a timelock"
+    },
+    {
+      "code": 6019,
+      "name": "amountDoesNotRequireTimelock",
+      "msg": "Operation amount does not require a timelock"
+    },
+    {
+      "code": 6020,
+      "name": "invalidOperationAmount",
+      "msg": "Pending operation amount must be positive"
+    },
+    {
+      "code": 6021,
+      "name": "mintControlsArithmeticOverflow",
+      "msg": "Mint controls arithmetic overflow"
+    },
+    {
+      "code": 6022,
+      "name": "pendingOperationNotEffective",
+      "msg": "Pending operation is not yet effective"
+    },
+    {
+      "code": 6023,
+      "name": "pendingOperationExpired",
+      "msg": "Pending operation has expired"
+    },
+    {
+      "code": 6024,
+      "name": "pendingOperationNotExpired",
+      "msg": "Pending operation has not expired"
+    },
+    {
+      "code": 6025,
+      "name": "invalidPendingOperation",
+      "msg": "Pending operation does not match the requested operation"
+    },
+    {
+      "code": 6026,
+      "name": "invalidLegacyAssetController",
+      "msg": "Invalid legacy asset controller"
+    },
+    {
+      "code": 6027,
+      "name": "burnReasonTooLong",
+      "msg": "Burn reason exceeds 256 UTF-8 bytes"
+    },
+    {
+      "code": 6028,
+      "name": "assetControllerMigrationRequired",
+      "msg": "Migrate the asset controller to V2 before using mint/burn controls"
     }
   ],
   "types": [
@@ -1196,6 +1882,50 @@ export type AssetController = {
               "authority has the ability to seize, freeze token accounts, etc."
             ],
             "type": "pubkey"
+          },
+          {
+            "name": "caps",
+            "type": {
+              "defined": {
+                "name": "capsConfig"
+              }
+            }
+          },
+          {
+            "name": "throttle",
+            "type": {
+              "defined": {
+                "name": "throttleConfig"
+              }
+            }
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "throttleState"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "assetControllerMigrated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "assetMint",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "version",
+            "type": "u8"
           }
         ]
       }
@@ -1256,6 +1986,74 @@ export type AssetController = {
           {
             "name": "mint",
             "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "burnRequest",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "reason",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "capsConfig",
+      "docs": [
+        "Single-instruction ceilings in base units. Zero disables the corresponding cap."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "maxMintPerTx",
+            "type": "u64"
+          },
+          {
+            "name": "maxBurnPerTx",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "capsUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "assetMint",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "caps",
+            "type": {
+              "defined": {
+                "name": "capsConfig"
+              }
+            }
           }
         ]
       }
@@ -1807,6 +2605,307 @@ export type AssetController = {
       }
     },
     {
+      "name": "mintRequest",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "issuanceTimestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "operationCancelled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "assetMint",
+            "type": "pubkey"
+          },
+          {
+            "name": "operationId",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "kind",
+            "type": {
+              "defined": {
+                "name": "operationKind"
+              }
+            }
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "operationData",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "mint",
+            "fields": [
+              {
+                "name": "amount",
+                "type": "u64"
+              },
+              {
+                "name": "issuanceTimestamp",
+                "type": "i64"
+              }
+            ]
+          },
+          {
+            "name": "burn",
+            "fields": [
+              {
+                "name": "amount",
+                "type": "u64"
+              },
+              {
+                "name": "reason",
+                "type": "string"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "operationExecuted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "assetMint",
+            "type": "pubkey"
+          },
+          {
+            "name": "operationId",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "kind",
+            "type": {
+              "defined": {
+                "name": "operationKind"
+              }
+            }
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "tokenAccount",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "operationExpired",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "assetMint",
+            "type": "pubkey"
+          },
+          {
+            "name": "operationId",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "kind",
+            "type": {
+              "defined": {
+                "name": "operationKind"
+              }
+            }
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "operationKind",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "mint"
+          },
+          {
+            "name": "burn"
+          }
+        ]
+      }
+    },
+    {
+      "name": "operationProposed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "assetMint",
+            "type": "pubkey"
+          },
+          {
+            "name": "operationId",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "identityAccount",
+            "type": "pubkey"
+          },
+          {
+            "name": "tokenAccount",
+            "type": "pubkey"
+          },
+          {
+            "name": "data",
+            "type": {
+              "defined": {
+                "name": "operationData"
+              }
+            }
+          },
+          {
+            "name": "effectiveAt",
+            "type": "i64"
+          },
+          {
+            "name": "expiresAt",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "pendingOperation",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "assetMint",
+            "type": "pubkey"
+          },
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "identityAccount",
+            "type": "pubkey"
+          },
+          {
+            "name": "tokenAccount",
+            "type": "pubkey"
+          },
+          {
+            "name": "id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "data",
+            "type": {
+              "defined": {
+                "name": "operationData"
+              }
+            }
+          },
+          {
+            "name": "proposer",
+            "docs": [
+              "Authorized signer; human role attribution belongs to RBAC."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "rentPayer",
+            "type": "pubkey"
+          },
+          {
+            "name": "effectiveAt",
+            "type": "i64"
+          },
+          {
+            "name": "expiresAt",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
       "name": "policy",
       "type": {
         "kind": "struct",
@@ -2047,6 +3146,89 @@ export type AssetController = {
           {
             "name": "mint",
             "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "throttleConfig",
+      "docs": [
+        "Shared tumbling window, mint/burn timelock, and pending-operation expiry."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "enabled",
+            "type": "bool"
+          },
+          {
+            "name": "mintWindowCap",
+            "type": "u64"
+          },
+          {
+            "name": "burnWindowCap",
+            "type": "u64"
+          },
+          {
+            "name": "windowSeconds",
+            "type": "i64"
+          },
+          {
+            "name": "largeAmountThreshold",
+            "type": "u64"
+          },
+          {
+            "name": "largeAmountDelay",
+            "type": "i64"
+          },
+          {
+            "name": "pendingOperationGracePeriod",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "throttleState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "windowStart",
+            "type": "i64"
+          },
+          {
+            "name": "mintedInWindow",
+            "type": "u64"
+          },
+          {
+            "name": "burnedInWindow",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "throttleUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "assetMint",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "throttle",
+            "type": {
+              "defined": {
+                "name": "throttleConfig"
+              }
+            }
           }
         ]
       }

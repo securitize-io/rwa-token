@@ -49,10 +49,10 @@ pub fn handler(
 ) -> Result<i64> {
     let tracker_account: &mut TrackerAccount = &mut ctx.accounts.destination_tracker_account;
 
-    let issuance_timestamp = ctx.accounts.policy_engine.get_issuance_time(
-        issuance_timestamp,
-        Clock::get()?.unix_timestamp,
-    );
+    let issuance_timestamp = ctx
+        .accounts
+        .policy_engine
+        .get_issuance_time(issuance_timestamp, Clock::get()?.unix_timestamp);
 
     tracker_account.new_issuance(amount, issuance_timestamp)?;
 
@@ -71,7 +71,7 @@ pub fn handler(
         ctx.accounts.asset_mint.supply,
         &ctx.accounts.identity_account.levels,
         ctx.accounts.identity_account.country,
-        Some(&tracker_account),
+        Some(tracker_account),
     )?;
     Ok(issuance_timestamp)
 }

@@ -28,6 +28,41 @@ pub mod asset_controller {
         instructions::create::handler(ctx, args)
     }
 
+    pub fn migrate_asset_controller(ctx: Context<MigrateAssetController>) -> Result<()> {
+        instructions::migrate::handler(ctx)
+    }
+
+    pub fn set_caps_config(ctx: Context<ConfigureMintControls>, caps: CapsConfig) -> Result<()> {
+        instructions::configure_mint_controls::set_caps(ctx, caps)
+    }
+
+    pub fn set_throttle_config(
+        ctx: Context<ConfigureMintControls>,
+        throttle: ThrottleConfig,
+    ) -> Result<()> {
+        instructions::configure_mint_controls::set_throttle(ctx, throttle)
+    }
+
+    pub fn propose_mint(ctx: Context<ProposeMint>, request: MintRequest) -> Result<()> {
+        instructions::propose_mint::handler(ctx, request)
+    }
+
+    pub fn propose_burn(ctx: Context<ProposeBurn>, request: BurnRequest) -> Result<()> {
+        instructions::propose_burn::handler(ctx, request)
+    }
+
+    pub fn execute_pending(ctx: Context<ExecutePending>) -> Result<()> {
+        instructions::execute_pending::handler(ctx)
+    }
+
+    pub fn cancel_pending(ctx: Context<CancelPending>) -> Result<()> {
+        instructions::cancel_pending::handler(ctx)
+    }
+
+    pub fn expire_pending(ctx: Context<ExpirePending>) -> Result<()> {
+        instructions::expire_pending::handler(ctx)
+    }
+
     /// issue shares of the rwa asset
     pub fn issue_tokens(
         ctx: Context<IssueTokens>,
@@ -47,7 +82,7 @@ pub mod asset_controller {
 
     /// revoke shares of the rwa asset
     pub fn revoke_tokens<'info>(
-        ctx: Context<'_, '_, '_, 'info, RevokeTokens<'info>>,
+        ctx: Context<'info, RevokeTokens<'info>>,
         amount: u64,
         reason: String,
     ) -> Result<()> {
@@ -56,7 +91,7 @@ pub mod asset_controller {
 
     /// seize shares of the rwa asset
     pub fn seize_tokens<'info>(
-        ctx: Context<'_, '_, '_, 'info, SeizeTokens<'info>>,
+        ctx: Context<'info, SeizeTokens<'info>>,
         amount: u64,
         reason: String,
     ) -> Result<()> {

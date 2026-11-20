@@ -1,4 +1,4 @@
-import { type Provider } from "@coral-xyz/anchor";
+import { type Provider } from "@anchor-lang/core";
 import { type IdentityRegistryAccount, type IdentityAccount, WalletIdentityAccount } from "./types";
 import {
 	getIdentityAccountPda,
@@ -139,7 +139,7 @@ export async function getWalletIdentityAccountsWithFilter(
 
 	const filters: GetProgramAccountsFilter[] = [];
 	filters.push({ memcmp: { offset: WALLET_IDENTITY_ACCOUNT_OWNER_OFFSET, bytes: new PublicKey(owner).toBase58()}, });
-	
+
 	const walletIdentityAccounts = await provider.connection.getProgramAccounts(identityRegistryProgram.programId, {
 		filters,
 	});

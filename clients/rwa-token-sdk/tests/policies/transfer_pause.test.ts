@@ -1,4 +1,4 @@
-import { AnchorProvider, BN, Wallet } from "@coral-xyz/anchor";
+import { AnchorProvider, BN, Wallet } from "@anchor-lang/core";
 import {
 	getTransferTokensIxs,
 	RwaClient,
@@ -136,7 +136,7 @@ describe("test additional policies", async () => {
 				decimals,
 				createTa: true,
 			}, rwaClient.provider);
-            
+
 			await expect(sendAndConfirmTransaction(
 				setup.provider.connection,
 				new Transaction().add(...transferTokensIxs),

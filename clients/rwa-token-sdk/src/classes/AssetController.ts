@@ -15,6 +15,12 @@ import {
 import { type IxReturn } from "../utils";
 import { type RwaClient } from "./Client";
 import { getExtraMetasListPda } from "../policy-engine";
+import {
+	type SetCapsConfigArgs, type SetThrottleConfigArgs, type MigrateAssetControllerArgs, type ProposeMintArgs, type ProposeBurnArgs,
+	type ExecutePendingArgs, type CancelPendingArgs, type ExpirePendingArgs,
+	getSetCapsConfigIx, getSetThrottleConfigIx, getMigrateAssetControllerIx, getProposeMintIx, getProposeBurnIx,
+	getExecutePendingIxs, getCancelPendingIx, getExpirePendingIx,
+} from "../asset-controller/mint-controls";
 
 /**
  * Represents the client for Asset Controller for an RWA.
@@ -24,6 +30,38 @@ export class AssetController {
 
 	constructor(rwaClient: RwaClient) {
 		this.rwaClient = rwaClient;
+	}
+
+	async setCapsConfig(args: SetCapsConfigArgs): Promise<TransactionInstruction> {
+		return getSetCapsConfigIx(args, this.rwaClient.provider);
+	}
+
+	async setThrottleConfig(args: SetThrottleConfigArgs): Promise<TransactionInstruction> {
+		return getSetThrottleConfigIx(args, this.rwaClient.provider);
+	}
+
+	async migrateAssetController(args: MigrateAssetControllerArgs): Promise<TransactionInstruction> {
+		return getMigrateAssetControllerIx(args, this.rwaClient.provider);
+	}
+
+	async proposeMint(args: ProposeMintArgs): Promise<TransactionInstruction> {
+		return getProposeMintIx(args, this.rwaClient.provider);
+	}
+
+	async proposeBurn(args: ProposeBurnArgs): Promise<TransactionInstruction> {
+		return getProposeBurnIx(args, this.rwaClient.provider);
+	}
+
+	async executePending(args: ExecutePendingArgs): Promise<TransactionInstruction[]> {
+		return getExecutePendingIxs(args, this.rwaClient.provider);
+	}
+
+	async cancelPending(args: CancelPendingArgs): Promise<TransactionInstruction> {
+		return getCancelPendingIx(args, this.rwaClient.provider);
+	}
+
+	async expirePending(args: ExpirePendingArgs): Promise<TransactionInstruction> {
+		return getExpirePendingIx(args, this.rwaClient.provider);
 	}
 
 	/**

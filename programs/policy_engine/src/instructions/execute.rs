@@ -1,11 +1,13 @@
 use crate::{
-    assert_is_transferring, verify_pda, PolicyEngineAccount, PolicyEngineErrors, Side, TrackerAccount, LOCKED_LEVEL, PLATFORM_WALLET_LEVEL, US_COMPLIANCE_LEVEL
+    assert_is_transferring, verify_pda, PolicyEngineAccount, PolicyEngineErrors, Side,
+    TrackerAccount, LOCKED_LEVEL, PLATFORM_WALLET_LEVEL, US_COMPLIANCE_LEVEL,
 };
 use anchor_lang::prelude::*;
-use anchor_spl::{token_2022::spl_token_2022::extension::permanent_delegate::PermanentDelegate, token_interface::{get_mint_extension_data, Mint, TokenAccount}};
-use identity_registry::{
-    program::IdentityRegistry, IdentityAccount, WalletIdentity
+use anchor_spl::{
+    token_2022::spl_token_2022::extension::permanent_delegate::PermanentDelegate,
+    token_interface::{get_mint_extension_data, Mint, TokenAccount},
 };
+use identity_registry::{program::IdentityRegistry, IdentityAccount, WalletIdentity};
 use rwa_utils::META_LIST_ACCOUNT_SEED;
 
 #[derive(Accounts)]
@@ -82,11 +84,14 @@ pub fn handler(ctx: Context<ExecuteTransferHook>, amount: u64) -> Result<()> {
         &identity_registry::id(),
     )?;
 
-    require!(ctx.accounts.destination_identity_account.owner.key() == identity_registry::id(), PolicyEngineErrors::InvalidIdentityAccount);
+    require!(
+        ctx.accounts.destination_identity_account.owner.key() == identity_registry::id(),
+        PolicyEngineErrors::InvalidIdentityAccount
+    );
 
     let destination_identity_account = Box::new(IdentityAccount::try_deserialize(
-                &mut &ctx.accounts.destination_identity_account.data.borrow()[..],
-            )?);
+        &mut &ctx.accounts.destination_identity_account.data.borrow()[..],
+    )?);
 
     if destination_identity_account.owner != ctx.accounts.destination_account.owner {
         //deserialize wallet identity
@@ -106,7 +111,10 @@ pub fn handler(ctx: Context<ExecuteTransferHook>, amount: u64) -> Result<()> {
         PolicyEngineErrors::InvalidIdentityAccount
     );
 
-    require!(ctx.accounts.source_identity_account.owner.key() == identity_registry::id(), PolicyEngineErrors::InvalidIdentityAccount);
+    require!(
+        ctx.accounts.source_identity_account.owner.key() == identity_registry::id(),
+        PolicyEngineErrors::InvalidIdentityAccount
+    );
 
     let source_identity_account = Box::new(IdentityAccount::try_deserialize(
         &mut &ctx.accounts.source_identity_account.data.borrow()[..],
@@ -124,8 +132,7 @@ pub fn handler(ctx: Context<ExecuteTransferHook>, amount: u64) -> Result<()> {
         );
     }
     require!(
-        source_identity_account.identity_registry
-            == ctx.accounts.identity_registry_account.key(),
+        source_identity_account.identity_registry == ctx.accounts.identity_registry_account.key(),
         PolicyEngineErrors::InvalidIdentityAccount
     );
 
@@ -133,35 +140,59 @@ pub fn handler(ctx: Context<ExecuteTransferHook>, amount: u64) -> Result<()> {
         || ctx.accounts.source_identity_account.key()
             == ctx.accounts.destination_identity_account.key();
 
-        //can skip owner program check, its going to be mutable
-    let mut source_tracker_account = Box::new(TrackerAccount::try_deserialize(&mut &ctx.accounts.source_tracker_account.data.borrow()[..])?);
-    
+    //can skip owner program check, its going to be mutable
+    let mut source_tracker_account = Box::new(TrackerAccount::try_deserialize(
+        &mut &ctx.accounts.source_tracker_account.data.borrow()[..],
+    )?);
+
     require!(
         source_tracker_account.identity_account == ctx.accounts.source_identity_account.key(),
         PolicyEngineErrors::TrackerAccountOwnerMismatch
     );
 
     let timestamp = Clock::get()?.unix_timestamp;
-    let is_permanent_delegate = ctx.accounts.owner_delegate.key() == get_mint_extension_data::<PermanentDelegate>(&ctx.accounts.asset_mint.to_account_info())?.delegate.0;
-    let is_platform_wallet_from = source_identity_account.levels.iter().any(|l| l.level == PLATFORM_WALLET_LEVEL);
-    let is_platform_wallet_to = destination_identity_account.levels.iter().any(|l| l.level == PLATFORM_WALLET_LEVEL);
+    let is_permanent_delegate = ctx.accounts.owner_delegate.key()
+        == get_mint_extension_data::<PermanentDelegate>(
+            &ctx.accounts.asset_mint.to_account_info(),
+        )?
+        .delegate
+        .0;
+    let is_platform_wallet_from = source_identity_account
+        .levels
+        .iter()
+        .any(|l| l.level == PLATFORM_WALLET_LEVEL);
+    let is_platform_wallet_to = destination_identity_account
+        .levels
+        .iter()
+        .any(|l| l.level == PLATFORM_WALLET_LEVEL);
     let is_platform_wallet = is_platform_wallet_from || is_platform_wallet_to;
-    
+
     if !self_transfer {
-        
-        
         if !is_permanent_delegate && !is_platform_wallet {
-            let is_locked_from = source_identity_account.levels.iter().any(|l| l.level == LOCKED_LEVEL);
-            let transferable_amount = if !is_locked_from { source_tracker_account.get_transferable_balance(timestamp)? } else { 0 };
+            let is_locked_from = source_identity_account
+                .levels
+                .iter()
+                .any(|l| l.level == LOCKED_LEVEL);
+            let transferable_amount = if !is_locked_from {
+                source_tracker_account.get_transferable_balance(timestamp)?
+            } else {
+                0
+            };
             require!(
                 transferable_amount >= amount,
                 PolicyEngineErrors::TokensLocked
             );
 
-            let country_compliance = policy_engine_account.mapping[source_identity_account.country as usize];
-            let hold_time = if country_compliance == US_COMPLIANCE_LEVEL { policy_engine_account.issuance_policies.us_lock_period } else { policy_engine_account.issuance_policies.non_us_lock_period };
+            let country_compliance =
+                policy_engine_account.mapping[source_identity_account.country as usize];
+            let hold_time = if country_compliance == US_COMPLIANCE_LEVEL {
+                policy_engine_account.issuance_policies.us_lock_period
+            } else {
+                policy_engine_account.issuance_policies.non_us_lock_period
+            };
 
-            let compliance_transferable_amount = source_tracker_account.get_compliance_transferable_balance(timestamp, hold_time, transferable_amount)?;
+            let compliance_transferable_amount = source_tracker_account
+                .get_compliance_transferable_balance(timestamp, hold_time, transferable_amount)?;
 
             require!(
                 compliance_transferable_amount >= amount,
@@ -169,19 +200,14 @@ pub fn handler(ctx: Context<ExecuteTransferHook>, amount: u64) -> Result<()> {
             );
         }
 
-        source_tracker_account.update_transfer_history(
-            amount,
-            Side::Sell,
-        )?;
-        let source_tracker_account_data = source_tracker_account.try_to_vec()?;
-        let source_tracker_account_data_len = source_tracker_account_data.len();
-        ctx.accounts.source_tracker_account.data.borrow_mut()
-            [8..8 + source_tracker_account_data_len]
-            .copy_from_slice(&source_tracker_account_data);
+        source_tracker_account.update_transfer_history(amount, Side::Sell)?;
+        let mut data = ctx.accounts.source_tracker_account.try_borrow_mut_data()?;
+        source_tracker_account.serialize(&mut &mut data[8..])?;
     }
-    
-    
-    let mut destination_tracker_account = Box::new(TrackerAccount::try_deserialize(&mut &ctx.accounts.destination_tracker_account.data.borrow()[..])?);
+
+    let mut destination_tracker_account = Box::new(TrackerAccount::try_deserialize(
+        &mut &ctx.accounts.destination_tracker_account.data.borrow()[..],
+    )?);
     require!(
         destination_tracker_account.identity_account
             == ctx.accounts.destination_identity_account.key(),
@@ -189,32 +215,33 @@ pub fn handler(ctx: Context<ExecuteTransferHook>, amount: u64) -> Result<()> {
     );
 
     if !self_transfer {
-        destination_tracker_account.update_transfer_history(
-            amount,
-            Side::Buy,
-        )?;
-        let destination_tracker_account_data = destination_tracker_account.try_to_vec()?;
-        let destination_tracker_account_data_len = destination_tracker_account_data.len();
-        ctx.accounts.destination_tracker_account.data.borrow_mut()
-            [8..8 + destination_tracker_account_data_len]
-            .copy_from_slice(&destination_tracker_account_data);
+        destination_tracker_account.update_transfer_history(amount, Side::Buy)?;
+        let mut data = ctx
+            .accounts
+            .destination_tracker_account
+            .try_borrow_mut_data()?;
+        destination_tracker_account.serialize(&mut &mut data[8..])?;
     }
 
     let source_balance = source_tracker_account.total_amount;
     let destination_balance = destination_tracker_account.total_amount;
 
-
     if !is_permanent_delegate && !self_transfer {
         let decreased_counters = if source_balance == 0 {
             // source has 0 balance
-            policy_engine_account.decrease_holders_count(&source_identity_account.levels, source_identity_account.country)?
+            policy_engine_account.decrease_holders_count(
+                &source_identity_account.levels,
+                source_identity_account.country,
+            )?
         } else {
             vec![]
         };
         let increased_counters = if destination_balance == amount {
             // destination has 0 balance
-            policy_engine_account
-                .increase_holders_count(&destination_identity_account.levels, destination_identity_account.country)?
+            policy_engine_account.increase_holders_count(
+                &destination_identity_account.levels,
+                destination_identity_account.country,
+            )?
         } else {
             vec![]
         };
@@ -228,9 +255,8 @@ pub fn handler(ctx: Context<ExecuteTransferHook>, amount: u64) -> Result<()> {
         }
 
         if !increased_counters.is_empty() || !decreased_counters.is_empty() {
-            let data = policy_engine_account.try_to_vec()?;
-            let len = data.len();
-            ctx.accounts.policy_engine_account.data.borrow_mut()[8..8 + len].copy_from_slice(&data);
+            let mut data = ctx.accounts.policy_engine_account.try_borrow_mut_data()?;
+            policy_engine_account.serialize(&mut &mut data[8..])?;
         }
     }
 

@@ -13,7 +13,7 @@
     "access": "public"
   },
   "scripts": {
-    "test": "vitest run --testTimeout=240000",
+    "test": "vitest run",
     "lint": "eslint . --ext .ts",
     "build": "tsc",
     "build:package": "yarn clean && rollup -c",
@@ -32,24 +32,24 @@
     "tokenization"
   ],
   "dependencies": {
-    "@coral-xyz/anchor": "0.30.1",
     "@solana/spl-token": "0.4.12",
     "@solana/web3.js": "1.98.0",
-    "dotenv": "16.4.7"
+    "dotenv": "16.4.7",
+    "@anchor-lang/core": "1.1.2"
   },
   "devDependencies": {
     "@rollup/plugin-json": "6.1.0",
-    "@typescript-eslint/eslint-plugin": "7.18.0",
-    "@typescript-eslint/parser": "7.18.0",
+    "@typescript-eslint/eslint-plugin": "8.26.0",
+    "@typescript-eslint/parser": "8.26.0",
     "eslint": "9.21.0",
-    "eslint-config-xo": "0.44.0",
-    "eslint-config-xo-typescript": "3.0.0",
     "rollup": "2.79.2",
     "rollup-plugin-dts": "6.1.1",
     "rollup-plugin-typescript2": "0.36.0",
     "typedoc": "0.25.13",
     "typescript": "5.8.2",
-    "vitest": "3.0.5"
+    "vitest": "3.0.5",
+    "@eslint/js": "9.21.0",
+    "globals": "15.15.0"
   },
   "author": "Standard Labs, Inc.",
   "contributors": [
@@ -57,5 +57,14 @@
     "Bhargava Sai Macha <bhargava@loopscale.com>",
     "Chris Hagedorn <chris@loopscale.com>"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "packageManager": "yarn@1.22.22",
+  "engines": {
+    "node": ">=20.18.0"
+  },
+  "resolutions": {
+    "@solana/web3.js": "1.98.0",
+    "@anchor-lang/borsh": "1.1.2",
+    "@anchor-lang/errors": "1.1.2"
+  }
 }

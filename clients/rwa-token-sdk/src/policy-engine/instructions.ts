@@ -12,7 +12,7 @@ import {
 	getTrackerAccountPda,
 } from "./utils";
 import { type PolicyType, type IdentityFilter, Counter, CounterLimit, IssuancePolicies } from "./types";
-import { BN, Provider } from "@coral-xyz/anchor";
+import { BN, Provider } from "@anchor-lang/core";
 import { getIdentityAccountPda, getIdentityRegistryPda } from "../identity-registry";
 
 /** Represents the arguments required to create a policy engine account. */

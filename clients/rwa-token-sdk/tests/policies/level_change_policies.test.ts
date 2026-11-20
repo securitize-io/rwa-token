@@ -1,4 +1,4 @@
-import { AnchorProvider, BN, Wallet } from "@coral-xyz/anchor";
+import { AnchorProvider, BN, Wallet } from "@anchor-lang/core";
 import {
 	type AttachPolicyArgs,
 	getSetupUserIxs,
@@ -13,7 +13,7 @@ import {
 	Transaction,
 	sendAndConfirmTransaction,
 } from "@solana/web3.js";
-import { expect, test, describe } from "vitest";
+import { beforeAll, expect, test, describe } from "vitest";
 import { type Config } from "../../src/classes/types";
 import { RwaClient } from "../../src/classes";
 
@@ -24,7 +24,7 @@ describe("level change policies tests", async () => {
 
 	const decimals = 2;
 
-	test("setup provider", async () => {
+	beforeAll(() => {
 		const connectionUrl = process.env.RPC_URL ?? "http://localhost:8899";
 		const connection = new Connection(connectionUrl, "processed");
 
@@ -162,7 +162,7 @@ describe("level change policies tests", async () => {
 		);
 		expect(txnId).toBeTruthy();
 
-		
+
 		const issueArgs2: IssueTokenArgs = {
 			authority: setup.authority.toString(),
 			payer: setup.payer.toString(),
@@ -213,10 +213,10 @@ describe("level change policies tests", async () => {
 					]
 				}]
 			},
-			policyType: { 
-				maxBalance: { 
+			policyType: {
+				maxBalance: {
 					limit: new BN(1000),
-				} 
+				}
 			},
 		});
 		const txnId = await sendAndConfirmTransaction(
@@ -243,10 +243,10 @@ describe("level change policies tests", async () => {
 					]
 				}]
 			},
-			policyType: { 
-				minBalance: { 
+			policyType: {
+				minBalance: {
 					limit: new BN(10),
-				} 
+				}
 			},
 		});
 		const txnId = await sendAndConfirmTransaction(
@@ -266,7 +266,7 @@ describe("level change policies tests", async () => {
 			assetMint: mint,
 			payer: setup.payer.toString(),
 		});
-		
+
 		await expect(sendAndConfirmTransaction(
 			setup.provider.connection,
 			new Transaction().add(addLevelIx),
@@ -284,7 +284,7 @@ describe("level change policies tests", async () => {
 			assetMint: mint,
 			payer: setup.payer.toString(),
 		});
-		
+
 		await expect(sendAndConfirmTransaction(
 			setup.provider.connection,
 			new Transaction().add(addLevelIx),
@@ -310,5 +310,5 @@ describe("level change policies tests", async () => {
 		expect(txnId).toBeTruthy();
 	});
 
-	
+
 });

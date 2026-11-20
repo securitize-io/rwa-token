@@ -7,6 +7,10 @@ pub use track::*;
 use anchor_lang::{solana_program::program_error::ProgramError, AnchorDeserialize, Discriminator};
 use rwa_utils::GeyserProgramAccount;
 
+#[allow(
+    clippy::large_enum_variant,
+    reason = "Preserve the public Geyser decoder API without introducing a boxed variant."
+)]
 pub enum PolicyEngineAccounts {
     PolicyEngineAccount(PolicyEngineAccount),
     TrackerAccount(TrackerAccount),

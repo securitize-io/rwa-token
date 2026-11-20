@@ -32,12 +32,7 @@ pub const NO_TRACKER_LEVEL: IdentityLevel = IdentityLevel {
 
 impl IdentityRegistryAccount {
     pub const VERSION: u8 = 1;
-    pub fn new(
-        &mut self,
-        asset_mint: Pubkey,
-        authority: Pubkey,
-        bump: u8,
-    ) {
+    pub fn new(&mut self, asset_mint: Pubkey, authority: Pubkey, bump: u8) {
         self.asset_mint = asset_mint;
         self.authority = authority;
         self.version = Self::VERSION;

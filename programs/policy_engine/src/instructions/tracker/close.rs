@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::{TrackerAccount, PolicyEngineErrors};
+use crate::{PolicyEngineErrors, TrackerAccount};
 use anchor_spl::token_interface::Mint;
 use identity_registry::{IdentityAccount, IdentityRegistryAccount};
 
@@ -9,8 +9,8 @@ use identity_registry::{IdentityAccount, IdentityRegistryAccount};
 pub struct CloseTrackerAccount<'info> {
     /// CHECK: should be checked by caller (secured by CPI from IRP with IdentityRegistryAccount as signer)
     #[account(mut)]
-    pub payer: AccountInfo<'info>,
-    
+    pub payer: UncheckedAccount<'info>,
+
     #[account(has_one = asset_mint, signer)]
     pub identity_registry: Box<Account<'info, IdentityRegistryAccount>>,
     #[account()]

@@ -1,4 +1,4 @@
-import { AnchorProvider, BN, Wallet } from "@coral-xyz/anchor";
+import { AnchorProvider, BN, Wallet } from "@anchor-lang/core";
 import {
 	type AttachPolicyArgs,
 	getFreezeTokenIx,
@@ -23,7 +23,7 @@ import {
 	Transaction,
 	sendAndConfirmTransaction,
 } from "@solana/web3.js";
-import { expect, test, describe } from "vitest";
+import { beforeAll, expect, test, describe } from "vitest";
 import { type Config } from "../src/classes/types";
 import { RwaClient } from "../src/classes";
 import { getAccount, getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
@@ -34,9 +34,8 @@ describe("e2e tests", async () => {
 	const setup = await setupTests();
 
 	const decimals = 2;
-	let dataAccount: string;
 
-	test("setup provider", async () => {
+	beforeAll(() => {
 		const connectionUrl = process.env.RPC_URL ?? "http://localhost:8899";
 		const connection = new Connection(connectionUrl, "processed");
 
@@ -216,7 +215,7 @@ describe("e2e tests", async () => {
 		);
 		expect(txnId).toBeTruthy();
 	});
-	
+
 	test("issue tokens", async () => {
 		const issueArgs: IssueTokenArgs = {
 			authority: setup.authority.toString(),
@@ -269,6 +268,40 @@ describe("e2e tests", async () => {
 			{skipPreflight: true}
 		);
 		expect(txnId).toBeTruthy();
+	});
+
+	test("seizure to the same token account preserves balances", async () => {
+		const tokenAddress = getAssociatedTokenAddressSync(
+			new PublicKey(mint), setup.user1, true, TOKEN_2022_PROGRAM_ID
+		);
+		const tokenBefore = await getAccount(
+			rwaClient.provider.connection, tokenAddress, "confirmed", TOKEN_2022_PROGRAM_ID
+		);
+		const trackerBefore = await getTrackerAccount(mint, setup.user1.toString(), rwaClient.provider);
+		const engineBefore = await getPolicyEngineAccount(mint, rwaClient.provider);
+		const ixs = await getSeizeTokensIx({
+			from: setup.user1.toString(),
+			to: setup.user1.toString(),
+			assetMint: mint,
+			amount: new BN(100),
+			authority: setup.authority.toString(),
+			reason: "SELF TRANSFER"
+		}, rwaClient.provider);
+
+		await sendAndConfirmTransaction(
+			rwaClient.provider.connection,
+			new Transaction().add(...ixs),
+			[setup.payerKp, setup.authorityKp]
+		);
+
+		const tokenAfter = await getAccount(
+			rwaClient.provider.connection, tokenAddress, "confirmed", TOKEN_2022_PROGRAM_ID
+		);
+		const trackerAfter = await getTrackerAccount(mint, setup.user1.toString(), rwaClient.provider);
+		const engineAfter = await getPolicyEngineAccount(mint, rwaClient.provider);
+		expect(tokenAfter.amount).toBe(tokenBefore.amount);
+		expect(trackerAfter!.totalAmount.eq(trackerBefore!.totalAmount)).toBe(true);
+		expect(engineAfter!.counters).toEqual(engineBefore!.counters);
 	});
 
 	test("freeze and thaw token account", async () => {
@@ -473,7 +506,7 @@ describe("e2e tests", async () => {
 			amount: new BN(2000),
 			decimals,
 		});
-		expect(sendAndConfirmTransaction(
+		await expect(sendAndConfirmTransaction(
 			rwaClient.provider.connection,
 			new Transaction().add(...transferIx),
 			[setup.user1Kp]
@@ -533,7 +566,7 @@ describe("e2e tests", async () => {
 			amount: new BN(100),
 			decimals,
 		});
-		expect(sendAndConfirmTransaction(
+		await expect(sendAndConfirmTransaction(
 			rwaClient.provider.connection,
 			new Transaction().add(...transferIx),
 			[setup.user2Kp]
@@ -547,7 +580,7 @@ describe("e2e tests", async () => {
 			signer: setup.authority.toString(),
 			payer: setup.payer.toString(),
 		}, rwaClient.provider);
-		expect(sendAndConfirmTransaction(
+		await expect(sendAndConfirmTransaction(
 			rwaClient.provider.connection,
 			new Transaction().add(revokeIx),
 			[setup.payerKp, setup.authorityKp]
