@@ -13,7 +13,7 @@
     "access": "public"
   },
   "scripts": {
-    "test": "vitest run --testTimeout=240000",
+    "test": "vitest run",
     "lint": "eslint . --ext .ts",
     "build": "tsc",
     "build:package": "yarn clean && rollup -c",

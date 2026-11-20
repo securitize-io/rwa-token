@@ -15,11 +15,11 @@ anchor build
 anchor test -- --features localnet
 ```
 
-`anchor test` starts Surfpool by default. `Anchor.toml` configures offline mode and clock-based block production, so the existing finalized-commitment confirmations advance without a remote RPC. Anchor's `[workspace].idls` and `types` settings write the generated files directly into the SDK using native snake_case names; the SDK barrel exports retain the existing public names. Keep the `localnet` feature explicit: the fixtures use keypair authorities, while default builds enforce the external access-controller authority derivation.
+`anchor test` starts Surfpool by default. `Anchor.toml` configures offline mode and transaction-driven block production. Timelock tests advance the on-chain clock with `surfnet_timeTravel` rather than sleeping. `vitest.config.mjs` disables file parallelism and runs the clock-changing `mint-controls.test.ts` suite last, so no other suite observes its time changes. Keep this ordering when adding clock-sensitive tests. Anchor's `[workspace].idls` and `types` settings write the generated files directly into the SDK using native snake_case names; the SDK barrel exports retain the existing public names. Keep the `localnet` feature explicit: the fixtures use keypair authorities, while default builds enforce the external access-controller authority derivation.
 
 Anchor 1.x checks declared IDs against build keypairs. On a fresh checkout whose generated local keys differ, use `anchor build --ignore-keys` for compilation; keep the fixed program IDs unchanged. `anchor test` supports those ephemeral keys automatically. To use the older validator backend explicitly, pass `--validator legacy`.
 
-For an existing Surfpool instance with matching deployed artifacts, use `anchor test --skip-build --skip-deploy --skip-local-validator`. For a focused SDK test file, run `corepack yarn test tests/tracker.test.ts` in the SDK directory with `ANCHOR_PROVIDER_URL` and `RPC_URL` set to the local RPC, and `ANCHOR_WALLET` set to a local test wallet. Select whole files because cases share earlier setup state.
+For an existing fresh Surfpool instance with matching deployed artifacts, use `anchor test --skip-build --skip-deploy --skip-local-validator`. Full runs need a fresh instance because the final suite advances its clock; ordinary `anchor test` starts one automatically. For a focused SDK test file, run `corepack yarn test tests/tracker.test.ts` in the SDK directory with `ANCHOR_PROVIDER_URL` and `RPC_URL` set to the local RPC, and `ANCHOR_WALLET` set to a local test wallet. Select whole files because cases share earlier setup state.
 
 The migration to Anchor 1.1.2 preserves program IDs, PDA seeds, account data, instruction discriminators, and event/error definitions. It updates CPI contexts to accept program IDs, uses Borsh 1 writer serialization and account resizing, and gives the transfer hook an explicit SPL execute discriminator. A scoped `dup` constraint preserves Token-2022 self-transfers in seizure; the integration suite checks that balances and counters remain unchanged. The new IDLs omit external programs' accounts from their account lists; use each account's owning program to decode it. SDK account builders retain explicit event authority accounts because event-CPI PDA metadata is no longer emitted by default.
 
@@ -246,9 +246,15 @@ legacy-byte fixtures injected for compatibility and migration testing. It verifi
 legacy operations preserve account bytes/rent, mixed-version listing, V2-only
 controls, and migration of one asset while another remains usable as V1. Fixtures
 batch creation, identity setup, and initial controls in one transaction. Independent
-mint/burn lifecycle cases share waits where appropriate; cluster-clock polling
-does not change other suites' clocks. Shared funding setup waits for confirmed
-airdrops rather than finalized roots. SDK-only encoding/decoding tests live in
+mint/burn lifecycle cases advance to their stored release/expiry times. The helper
+reads the Clock sysvar, uses milliseconds for `surfnet_timeTravel`, and verifies
+the resulting timestamp. Files execute serially with this suite last, isolating
+its clock changes from the other suites. Do not enable file parallelism against
+the shared validator. Shared funding setup waits for confirmed
+airdrops rather than finalized roots. The mint-control sender fetches a fresh
+confirmed blockhash for every transaction and confirms against its validity height;
+clock advancement can age out web3.js's cached blockhash before its cache expires.
+SDK-only encoding/decoding tests live in
 `tests/mint-controls.unit.test.ts` and need no validator or environment wallet:
 
 ```sh

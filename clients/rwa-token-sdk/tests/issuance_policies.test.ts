@@ -7,7 +7,7 @@ import {
 } from "../src";
 import { setupTests } from "./setup";
 import { ConfirmOptions, Connection, Transaction, sendAndConfirmTransaction } from "@solana/web3.js";
-import { expect, test, describe } from "vitest";
+import { beforeAll, expect, test, describe } from "vitest";
 import { Config } from "../src/classes/types";
 
 describe("issuance policies", async () => {
@@ -17,7 +17,7 @@ describe("issuance policies", async () => {
 
 	const decimals = 2;
 
-	test("setup provider", async () => {
+	beforeAll(() => {
 		const connectionUrl = process.env.RPC_URL ?? "http://localhost:8899";
 		const connection = new Connection(connectionUrl, "processed");
 

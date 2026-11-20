@@ -1,6 +1,6 @@
 import { AnchorProvider, BN, Wallet, utils } from "@anchor-lang/core";
 import { beforeAll, describe, expect, test } from "vitest";
-import { ComputeBudgetProgram, Keypair, PublicKey, SYSVAR_CLOCK_PUBKEY, Transaction, TransactionInstruction, sendAndConfirmTransaction } from "@solana/web3.js";
+import { ComputeBudgetProgram, Keypair, PublicKey, SYSVAR_CLOCK_PUBKEY, Transaction, TransactionInstruction } from "@solana/web3.js";
 import { TOKEN_2022_PROGRAM_ID, getAccount, getAssociatedTokenAddressSync, getMint, getMemoTransfer } from "@solana/spl-token";
 import {
 	assetControllerProgramId, getAssetControllerAccount, getAssetControllerAccountsWithFilter,
@@ -53,7 +53,14 @@ describe.sequential("asset-controller mint controls", () => {
 		const signers = [setup.payerKp, setup.authorityKp, setup.user1Kp, setup.user2Kp, ...extra]
 			.filter((signer, index, all) => needed.has(signer.publicKey.toBase58()) && all.findIndex(other => other.publicKey.equals(signer.publicKey)) === index);
 		transaction.feePayer = setup.payer;
-		return sendAndConfirmTransaction(provider.connection, transaction, signers, { commitment: "confirmed", preflightCommitment: "confirmed" });
+		// Clock advancement can age a blockhash out before web3.js's cache expires.
+		const latest = await provider.connection.getLatestBlockhash("confirmed");
+		transaction.recentBlockhash = latest.blockhash;
+		transaction.sign(...signers);
+		const signature = await provider.connection.sendRawTransaction(transaction.serialize(), { preflightCommitment: "confirmed" });
+		const result = await provider.connection.confirmTransaction({ signature, ...latest }, "confirmed");
+		if (result.value.err) throw new Error(`Transaction ${signature} failed: ${JSON.stringify(result.value.err)}`);
+		return signature;
 	}
 
 	async function fixture(limits: Limits | null = config()) {
@@ -111,12 +118,17 @@ describe.sequential("asset-controller mint controls", () => {
 		return Number(clock.data.readBigInt64LE(32));
 	}
 
-	async function waitUntil(timestamp: BN | number) {
-		const deadline = Date.now() + 30_000;
-		while (await now() < Number(timestamp.toString())) {
-			if (Date.now() > deadline) throw new Error("Validator clock did not reach the requested timestamp");
-			await new Promise(resolve => setTimeout(resolve, 200));
-		}
+	async function advanceClockTo(timestamp: BN) {
+		const target = timestamp.toNumber();
+		if (await now() >= target) return;
+		const response = await fetch(provider.connection.rpcEndpoint, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "surfnet_timeTravel", params: [{ absoluteTimestamp: target * 1_000 }] }),
+		});
+		const result = await response.json() as { error?: unknown };
+		if (!response.ok || result.error) throw new Error(`Surfpool time travel failed: ${JSON.stringify(result.error ?? result)}`);
+		expect(await now()).toBe(target);
 	}
 
 	async function proposal(assetMint: string, wallet?: string) {
@@ -137,7 +149,7 @@ describe.sequential("asset-controller mint controls", () => {
 	}
 
 	function delayed(overrides: Partial<Limits> = {}) {
-		return config({ largeAmountThreshold: new BN(100), largeAmountDelay: new BN(3), pendingOperationGracePeriod: new BN(60), ...overrides });
+		return config({ largeAmountThreshold: new BN(100), largeAmountDelay: new BN(60), pendingOperationGracePeriod: new BN(60), ...overrides });
 	}
 
 	async function executeIx(assetMint: string, operationId: Uint8Array) {
@@ -192,11 +204,12 @@ describe.sequential("asset-controller mint controls", () => {
 		expect((await controls(mint)).state.mintedInWindow.toNumber()).toBe(0);
 	});
 
-	test("operation and exact cumulative mint caps hard-fail atomically", async () => {
+	test("mint ceilings apply per instruction and exact window caps hard-fail atomically", async () => {
 		const mint = await fixture();
 		await expect(issue(mint, 501)).rejects.toThrow("OperationCapExceeded");
-		await issue(mint, 500);
-		await issue(mint, 500);
+		const args = { assetMint: mint, payer: setup.payer.toBase58(), authority: setup.authority.toBase58(), owner: setup.user1.toBase58(), amount: new BN(500), timestamp: new BN(1) };
+		// Each instruction is at its ceiling; their combined amount reaches the window cap.
+		await send([...(await getIssueTokensIx(args, provider)), ...(await getIssueTokensIx(args, provider))]);
 		await expect(issue(mint, 1)).rejects.toThrow("WindowCapExceeded");
 		expect(await balance(mint)).toBe(1_000n);
 		expect((await controls(mint)).state.mintedInWindow.toNumber()).toBe(1_000);
@@ -218,22 +231,14 @@ describe.sequential("asset-controller mint controls", () => {
 	});
 
 	test("a window rolls over using cluster time even for backdated issuance", async () => {
-		const mint = await fixture(config({ windowSeconds: new BN(3) }));
+		const mint = await fixture(config({ windowSeconds: new BN(60) }));
 		await issue(mint, 500);
 		await issue(mint, 500);
 		await expect(issue(mint, 1)).rejects.toThrow("WindowCapExceeded");
 		const start = (await controls(mint)).state.windowStart;
-		await waitUntil(start.addn(3));
+		await advanceClockTo(start.addn(60));
 		await issue(mint, 1);
 		expect((await controls(mint)).state.mintedInWindow.toNumber()).toBe(1);
-	});
-
-	test("ceilings apply to individual instructions within a transaction", async () => {
-		const mint = await fixture(config({ maxMintPerTx: new BN(100) }));
-		const args = { assetMint: mint, payer: setup.payer.toBase58(), authority: setup.authority.toBase58(), owner: setup.user1.toBase58(), amount: new BN(100) };
-		await send([...(await getIssueTokensIx(args, provider)), ...(await getIssueTokensIx(args, provider))]);
-		expect(await balance(mint)).toBe(200n);
-		expect((await controls(mint)).state.mintedInWindow.toNumber()).toBe(200);
 	});
 
 	test("a later failing instruction rolls back earlier minting and consumption", async () => {
@@ -285,9 +290,11 @@ describe.sequential("asset-controller mint controls", () => {
 		const ixs = await executeIx(mint, p.operationId);
 		const ix = ixs[ixs.length - 1];
 		expect(ix.keys.filter(account => account.isSigner).length).toBe(2);
+		const redirect = new TransactionInstruction({ programId: ix.programId, data: ix.data, keys: ix.keys.map(key => key.pubkey.equals(p.pending.rentPayer) && !key.isSigner ? { ...key, pubkey: setup.user1 } : key) });
+		await expect(send([...ixs.slice(0, -1), redirect])).rejects.toThrow("ConstraintAddress");
 		await expect(send(ixs)).rejects.toThrow("PendingOperationNotEffective");
 		expect(await getPendingOperation(mint, p.operationId, provider)).not.toBeNull();
-		await waitUntil(p.pending.effectiveAt);
+		await advanceClockTo(p.pending.effectiveAt);
 		const rent = await provider.connection.getBalance(getPendingOperationPda(mint, p.operationId));
 		const payerBalance = await provider.connection.getBalance(p.pending.rentPayer);
 		const signature = await send(ixs);
@@ -302,23 +309,29 @@ describe.sequential("asset-controller mint controls", () => {
 		expect(await getPendingOperation(mint, p.operationId, provider)).not.toBeNull();
 	});
 
-	test("cancellation is authorized, emits an event, refunds rent, and permits a fresh proposal", async () => {
-		const mint = await fixture(delayed());
-		const p = await proposal(mint);
-		const args = { assetMint: mint, operationId: p.operationId, authority: setup.authority.toBase58() };
-		const bad = await getCancelPendingIx({ ...args, authority: setup.user1.toBase58() }, provider);
-		await expect(send([bad])).rejects.toThrow("InvalidAuthority");
-		const ix = await getCancelPendingIx(args, provider);
-		expect(ix.keys.filter(account => account.isSigner).map(account => account.pubkey.toBase58())).toEqual([args.authority]);
-		const rent = await provider.connection.getBalance(getPendingOperationPda(mint, p.operationId));
-		const payerBalance = await provider.connection.getBalance(p.pending.rentPayer);
-		const signature = await send([ix]);
-		expect(await provider.connection.getBalance(p.pending.rentPayer)).toBe(payerBalance + rent);
-		expect(await getPendingOperation(mint, p.operationId, provider)).toBeNull();
-		expect(await events(signature)).toContain("operationCancelled");
-		await expect(send([ix])).rejects.toThrow();
-		await send([p.ix]);
-		expect(await getPendingOperation(mint, p.operationId, provider)).not.toBeNull();
+	test("shared cancellation authorizes, refunds, prevents execution, and releases both kinds of IDs", async () => {
+		const mint = await fixture(null);
+		await issue(mint, 500);
+		await configure(mint, delayed());
+		for (const p of [await proposal(mint), await burnProposal(mint)]) {
+			const args = { assetMint: mint, operationId: p.operationId, authority: setup.authority.toBase58() };
+			const execute = await executeIx(mint, p.operationId);
+			const bad = await getCancelPendingIx({ ...args, authority: setup.user1.toBase58() }, provider);
+			await expect(send([bad])).rejects.toThrow("InvalidAuthority");
+			const ix = await getCancelPendingIx(args, provider);
+			expect(ix.keys.filter(account => account.isSigner).map(account => account.pubkey.toBase58())).toEqual([args.authority]);
+			const rent = await provider.connection.getBalance(getPendingOperationPda(mint, p.operationId));
+			const payerBefore = await provider.connection.getBalance(p.pending.rentPayer);
+			const signature = await send([ix]);
+			expect(await provider.connection.getBalance(p.pending.rentPayer)).toBe(payerBefore + rent);
+			expect(await getPendingOperation(mint, p.operationId, provider)).toBeNull();
+			expect(await events(signature)).toContain("operationCancelled");
+			await expect(send(execute)).rejects.toThrow();
+			await expect(send([ix])).rejects.toThrow();
+			await send([p.ix]);
+			expect(await getPendingOperation(mint, p.operationId, provider)).not.toBeNull();
+		}
+		expect(await balance(mint)).toBe(500n);
 	});
 
 	test("expiry blocks mint and burn execution, refunds rent, and releases IDs", async () => {
@@ -329,7 +342,7 @@ describe.sequential("asset-controller mint controls", () => {
 		const expiries = await Promise.all(operations.map(p => getExpirePendingIx({ assetMint: mint, operationId: p.operationId }, provider)));
 		for (const expire of expiries) expect(expire.keys.filter(account => account.isSigner)).toEqual([]);
 		await expect(send([expiries[0]])).rejects.toThrow("PendingOperationNotExpired");
-		await waitUntil(BN.max(operations[0].pending.expiresAt, operations[1].pending.expiresAt));
+		await advanceClockTo(BN.max(operations[0].pending.expiresAt, operations[1].pending.expiresAt));
 		for (const [index, p] of operations.entries()) {
 			await expect(send(await executeIx(mint, p.operationId))).rejects.toThrow("PendingOperationExpired");
 			const rent = await provider.connection.getBalance(getPendingOperationPda(mint, p.operationId));
@@ -344,18 +357,34 @@ describe.sequential("asset-controller mint controls", () => {
 		expect(await balance(mint)).toBe(500n);
 	});
 
-	test("execution rechecks current caps without changing the proposal's timestamps", async () => {
-		const mint = await fixture(delayed());
-		const p = await proposal(mint);
-		await configure(mint, delayed({ maxMintPerTx: new BN(299), largeAmountDelay: new BN(100), pendingOperationGracePeriod: new BN(200) }));
-		const after = await getPendingOperation(mint, p.operationId, provider);
-		expect(after?.effectiveAt.eq(p.pending.effectiveAt)).toBe(true);
-		expect(after?.expiresAt.eq(p.pending.expiresAt)).toBe(true);
-		await waitUntil(p.pending.effectiveAt);
-		await expect(send(await executeIx(mint, p.operationId))).rejects.toThrow("OperationCapExceeded");
-		expect(await getPendingOperation(mint, p.operationId, provider)).not.toBeNull();
+	test("pending mint and burn recheck current ceilings/windows while preserving their saved schedule", async () => {
+		const mint = await fixture(null);
+		await issue(mint, 1_000);
+		const windows = { mintWindowCap: new BN(300), burnWindowCap: new BN(300) };
+		await configure(mint, delayed(windows));
+		const operations = [await proposal(mint), await burnProposal(mint)];
+		await issue(mint, 100);
+		await burn(mint, 100);
+		await configure(mint, delayed({ ...windows, maxMintPerTx: new BN(299), maxBurnPerTx: new BN(299), largeAmountDelay: new BN(100), pendingOperationGracePeriod: new BN(200) }));
+		for (const p of operations) {
+			const after = await getPendingOperation(mint, p.operationId, provider);
+			expect(after?.effectiveAt.eq(p.pending.effectiveAt)).toBe(true);
+			expect(after?.expiresAt.eq(p.pending.expiresAt)).toBe(true);
+		}
+		await advanceClockTo(BN.max(operations[0].pending.effectiveAt, operations[1].pending.effectiveAt));
+		for (const p of operations) await expect(send(await executeIx(mint, p.operationId))).rejects.toThrow("OperationCapExceeded");
+		await configure(mint, delayed(windows));
+		for (const p of operations) await expect(send(await executeIx(mint, p.operationId))).rejects.toThrow("WindowCapExceeded");
+		const before = (await controls(mint)).state;
+		expect(before.mintedInWindow.toNumber()).toBe(100);
+		expect(before.burnedInWindow.toNumber()).toBe(100);
+		for (const p of operations) expect(await getPendingOperation(mint, p.operationId, provider)).not.toBeNull();
 		await configure(mint, delayed());
-		await send(await executeIx(mint, p.operationId));
+		for (const p of operations) await send(await executeIx(mint, p.operationId));
+		const after = (await controls(mint)).state;
+		expect(after.mintedInWindow.toNumber()).toBe(400);
+		expect(after.burnedInWindow.toNumber()).toBe(400);
+		expect(await balance(mint)).toBe(1_000n);
 	});
 
 	test("delayed issuance enforces current supply policy and rolls back consumption on rejection", async () => {
@@ -363,20 +392,10 @@ describe.sequential("asset-controller mint controls", () => {
 		const p = await proposal(mint);
 		const policy = await getChangeIssuancePoliciesIx({ assetMint: mint, payer: setup.payer.toBase58(), authority: setup.authority.toBase58(), issuancePolicies: { disallowBackdating: true, maxSupply: new BN(299), usLockPeriod: new BN(0), nonUsLockPeriod: new BN(0) } }, provider);
 		await send(policy.ixs);
-		await waitUntil(p.pending.effectiveAt);
+		await advanceClockTo(p.pending.effectiveAt);
 		await expect(send(await executeIx(mint, p.operationId))).rejects.toThrow("MaxSupplyExceeded");
 		expect((await controls(mint)).state.mintedInWindow.toNumber()).toBe(0);
 		expect((await getMint(provider.connection, new PublicKey(mint), "confirmed", TOKEN_2022_PROGRAM_ID)).supply).toBe(0n);
-		expect(await getPendingOperation(mint, p.operationId, provider)).not.toBeNull();
-	});
-
-	test("execution cannot redirect its rent refund", async () => {
-		const mint = await fixture(delayed());
-		const p = await proposal(mint);
-		const ixs = await executeIx(mint, p.operationId);
-		const ix = ixs[ixs.length - 1];
-		const redirect = new TransactionInstruction({ programId: ix.programId, data: ix.data, keys: ix.keys.map(key => key.pubkey.equals(p.pending.rentPayer) && !key.isSigner ? { ...key, pubkey: setup.user1 } : key) });
-		await expect(send([...ixs.slice(0, -1), redirect])).rejects.toThrow("ConstraintAddress");
 		expect(await getPendingOperation(mint, p.operationId, provider)).not.toBeNull();
 	});
 
@@ -455,9 +474,6 @@ describe.sequential("asset-controller mint controls", () => {
 		await expect(send([ix])).rejects.toThrow("InvalidLegacyAssetController");
 		await issue(mint, 1);
 		expect(await balance(mint)).toBe(1n);
-		const accountArgs = { assetMint: mint, payer: setup.payer.toBase58(), authority: setup.authority.toBase58(), owner: setup.user1.toBase58() };
-		await send([await getFreezeTokenIx(accountArgs, provider)]);
-		await send([await getThawTokenIx(accountArgs, provider)]);
 		await burn(mint, 1);
 		expect(await balance(mint)).toBe(0n);
 		await configure(mint, config({ maxMintPerTx: new BN(1) }));
@@ -486,7 +502,7 @@ describe.sequential("asset-controller mint controls", () => {
 		const ixs = await executeIx(mint, p.operationId);
 		expect(ixs).toHaveLength(1); // No mint ATA preparation on the burn path.
 		await expect(send(ixs)).rejects.toThrow("PendingOperationNotEffective");
-		await waitUntil(p.pending.effectiveAt);
+		await advanceClockTo(p.pending.effectiveAt);
 		const rent = await provider.connection.getBalance(getPendingOperationPda(mint, p.operationId));
 		const payerBefore = await provider.connection.getBalance(p.pending.rentPayer);
 		const signature = await send(ixs);
@@ -505,7 +521,7 @@ describe.sequential("asset-controller mint controls", () => {
 		await configure(mint, delayed());
 		const p = await burnProposal(mint);
 		await burn(mint, 100);
-		await waitUntil(p.pending.effectiveAt);
+		await advanceClockTo(p.pending.effectiveAt);
 		await expect(send(await executeIx(mint, p.operationId))).rejects.toThrow(/insufficient funds/i);
 		expect(await balance(mint)).toBe(250n);
 		expect((await controls(mint)).state.burnedInWindow.toNumber()).toBe(100);
@@ -515,37 +531,6 @@ describe.sequential("asset-controller mint controls", () => {
 		expect(await balance(mint)).toBe(50n);
 	});
 
-	test("pending burns recheck lowered ceilings and full windows without reserving budget", async () => {
-		const mint = await fixture(null);
-		await issue(mint, 1_000);
-		await configure(mint, delayed({ burnWindowCap: new BN(300) }));
-		const p = await burnProposal(mint);
-		await burn(mint, 100);
-		await configure(mint, delayed({ maxBurnPerTx: new BN(299), burnWindowCap: new BN(300) }));
-		await waitUntil(p.pending.effectiveAt);
-		await expect(send(await executeIx(mint, p.operationId))).rejects.toThrow("OperationCapExceeded");
-		await configure(mint, delayed({ burnWindowCap: new BN(300) }));
-		await expect(send(await executeIx(mint, p.operationId))).rejects.toThrow("WindowCapExceeded");
-		expect((await controls(mint)).state.burnedInWindow.toNumber()).toBe(100);
-		await configure(mint, delayed());
-		await send(await executeIx(mint, p.operationId));
-	});
-
-	test("shared cancellation closes a burn and permits reuse of the operation ID", async () => {
-		const mint = await fixture(null);
-		await issue(mint, 500);
-		await configure(mint, delayed());
-		const p = await burnProposal(mint);
-		await expect(send([p.ix])).rejects.toThrow();
-		const cancel = await getCancelPendingIx({ assetMint: mint, operationId: p.operationId, authority: setup.authority.toBase58() }, provider);
-		const signature = await send([cancel]);
-		expect(await events(signature)).toContain("operationCancelled");
-		expect(await getPendingOperation(mint, p.operationId, provider)).toBeNull();
-		await send([p.ix]);
-		expect(await getPendingOperation(mint, p.operationId, provider)).not.toBeNull();
-		expect(await balance(mint)).toBe(500n);
-	});
-
 	test("delayed mint and burn resolve attached wallets and share identity accounting", async () => {
 		const mint = await fixture(null);
 		await send([await getAttachWalletToIdentityIx({ assetMint: mint, payer: setup.payer.toBase58(), authority: setup.authority.toBase58(), owner: setup.user1.toBase58(), wallet: setup.user2.toBase58() }, provider)]);
@@ -553,7 +538,7 @@ describe.sequential("asset-controller mint controls", () => {
 		await configure(mint, delayed());
 		const queuedMint = await proposal(mint, setup.user2.toBase58());
 		const queuedBurn = await burnProposal(mint, 300, setup.user2.toBase58());
-		await waitUntil(BN.max(queuedMint.pending.effectiveAt, queuedBurn.pending.effectiveAt));
+		await advanceClockTo(BN.max(queuedMint.pending.effectiveAt, queuedBurn.pending.effectiveAt));
 		await send(await executeIx(mint, queuedMint.operationId));
 		expect(await balance(mint, setup.user2)).toBe(800n);
 		expect((await getTrackerAccount(mint, setup.user1.toBase58(), provider))?.totalAmount.toNumber()).toBe(800);

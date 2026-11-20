@@ -59,6 +59,8 @@ anchor test -- --features localnet
 
 Anchor starts offline Surfpool by default, and writes SDK artifacts before tests run. Use `--validator legacy` only to explicitly select solana-test-validator. The feature relaxes creation-time authority checks; validate default builds separately and never use localnet artifacts for production.
 
-Tests live in `clients/rwa-token-sdk/tests/` and need a local validator, deployed programs, and an Anchor test wallet. For direct SDK runs, align `ANCHOR_PROVIDER_URL` and `RPC_URL` and set `ANCHOR_WALLET`. Select whole test files: many cases depend on earlier setup cases. SDK type checking excludes tests.
+Tests live in `clients/rwa-token-sdk/tests/` and need a local validator, deployed programs, and an Anchor test wallet. Surfpool uses transaction-driven blocks. Vitest runs files serially and the clock-changing `mint-controls.test.ts` suite last; preserve that isolation and advance the Clock sysvar with Surfpool instead of sleeping. For direct SDK runs, align `ANCHOR_PROVIDER_URL` and `RPC_URL` and set `ANCHOR_WALLET`. Select whole test files: many cases depend on earlier setup cases. SDK type checking excludes tests.
 
 For program behavior changes, verify accepted/rejected transactions and resulting on-chain balances/counters, including rollback after rejection. Exercise changed account boundaries, attached wallets, delegate exceptions, and amount/time boundaries as applicable. Report the checks actually run and any blocked validation.
+
+Keep client/provider initialization in hooks rather than setup-only test cases. Consolidate shared instruction checks when a fixture can cover both operation kinds; retain separate mint/burn CPI, accounting, rollback, and migration regressions.

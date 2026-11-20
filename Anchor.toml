@@ -35,5 +35,5 @@ ws_port = 8900
 host = "127.0.0.1"
 # These fixtures create all state locally; no devnet accounts need cloning.
 online = false
-block_production_mode = "clock"
+block_production_mode = "transaction"
 log_level = "info"
