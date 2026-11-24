@@ -1,5 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
+import { getIssuanceAccounts } from "./issuance";
+
+
 import {
 	ComputeBudgetProgram,
 	Keypair,
@@ -42,7 +43,7 @@ import {
 	assetControllerProgramId,
 	getAssetControllerEventAuthority,
 } from "./utils";
-import { type Provider, BN } from "@coral-xyz/anchor";
+import { type Provider, BN } from "@anchor-lang/core";
 
 /** Represents arguments for creating an on chain asset controller. */
 export type CreateAssetControllerIx = {
@@ -150,26 +151,13 @@ export async function getIssueTokensIx(
 	const ix = await assetProgram.methods
 		.issueTokens(args.amount, args.timestamp || new BN( Date.now() / 1000))
 		.accountsStrict({
-			payer: new PublicKey(args.payer),
-			authority: new PublicKey(args.authority),
-			assetMint: new PublicKey(args.assetMint),
-			assetController: getAssetControllerPda(args.assetMint),
-			policyEngine: getPolicyEnginePda(args.assetMint),
-			policyEngineProgram: policyEngineProgramId,
-			identityAccount: getIdentityAccountPda(args.assetMint, args.owner),
-			trackerAccount: getTrackerAccountPda(args.assetMint, args.owner),
-			identityRegistry: getIdentityRegistryPda(args.assetMint),
-			tokenProgram: TOKEN_2022_PROGRAM_ID,
-			tokenAccount: getAssociatedTokenAddressSync(
-				new PublicKey(args.assetMint),
-				new PublicKey(args.wallet || args.owner),
-				true,
-				TOKEN_2022_PROGRAM_ID
-			),
-			associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-			systemProgram: SystemProgram.programId,
-			to: new PublicKey(args.wallet || args.owner),
-			walletIdentityAccount: getWalletIdentityAccountPda(args.assetMint, args.wallet || args.owner),
+			...getIssuanceAccounts({
+				payer: args.payer,
+				authority: args.authority,
+				assetMint: args.assetMint,
+				wallet: args.wallet || args.owner,
+				identityAccount: getIdentityAccountPda(args.assetMint, args.owner),
+			}),
 			eventAuthority: getAssetControllerEventAuthority(),
 			program: assetControllerProgramId,
 		})
@@ -283,7 +271,7 @@ export async function getTransferTokensIxs(
 				programId: new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"),
 			}));
 		}
-	} catch (error) {
+	} catch {
 		if (args.createTa) {
 			ixs.push(createAssociatedTokenAccountInstruction(new PublicKey(args.from), getAssociatedTokenAddressSync(
 				new PublicKey(args.assetMint),
@@ -567,7 +555,7 @@ export async function getRevokeTokensIx(
 			assetController: getAssetControllerPda(args.assetMint),
 			revokeTokenAccount: getAssociatedTokenAddressSync(
 				new PublicKey(args.assetMint),
-				new PublicKey(args.owner),
+				new PublicKey(args.wallet || args.owner),
 				true,
 				TOKEN_2022_PROGRAM_ID
 			),
@@ -606,7 +594,7 @@ export async function getSeizeTokensIx(
 	provider: Provider
 ): Promise<TransactionInstruction[]> {
 	const assetProgram = getAssetControllerProgram(provider);
-	const remainingAccounts = [		
+	const remainingAccounts = [
 		{
 			pubkey: getExtraMetasListPda(args.assetMint),
 			isWritable: false,
@@ -661,8 +649,8 @@ export async function getSeizeTokensIx(
 			pubkey: getTrackerAccountPda(args.assetMint, args.to),
 			isWritable: true,
 			isSigner: false,
-		}, 
-		
+		},
+
 	];
 	const ixs: TransactionInstruction[] = [ComputeBudgetProgram.setComputeUnitLimit({units: 450_000})];
 	const ix = await assetProgram.methods

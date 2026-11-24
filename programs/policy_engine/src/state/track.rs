@@ -51,39 +51,50 @@ impl TrackerAccount {
     }
 
     pub fn get_current_space(&self) -> usize {
-        TrackerAccount::INIT_SPACE + self.issuances.len() * Issuance::INIT_SPACE + self.locks.len() * Lock::INIT_SPACE
+        TrackerAccount::INIT_SPACE
+            + self.issuances.len() * Issuance::INIT_SPACE
+            + self.locks.len() * Lock::INIT_SPACE
     }
 
     /// for all timestamps, if timestamp is older than timestamp - max_timeframe. remove it,
     #[inline(never)]
-    pub fn update_transfer_history(
-        &mut self,
-        amount: u64,
-        side: Side,
-    ) -> Result<()> {
+    pub fn update_transfer_history(&mut self, amount: u64, side: Side) -> Result<()> {
         self.total_amount = if side != Side::Sell {
-            self.total_amount.checked_add(amount).ok_or(PolicyEngineErrors::BalanceOverflow)?
+            self.total_amount
+                .checked_add(amount)
+                .ok_or(PolicyEngineErrors::BalanceOverflow)?
         } else {
-            self.total_amount.checked_sub(amount).ok_or(PolicyEngineErrors::BalanceUnderflow)?
+            self.total_amount
+                .checked_sub(amount)
+                .ok_or(PolicyEngineErrors::BalanceUnderflow)?
         };
         Ok(())
     }
 
     pub fn new_issuance(&mut self, amount: u64, issue_time: i64) -> Result<()> {
-        self.issuances.push(Issuance {
-            amount,
-            issue_time,
-        });
-        self.total_amount = self.total_amount.checked_add(amount).ok_or(PolicyEngineErrors::BalanceOverflow)?;
+        self.issuances.push(Issuance { amount, issue_time });
+        self.total_amount = self
+            .total_amount
+            .checked_add(amount)
+            .ok_or(PolicyEngineErrors::BalanceOverflow)?;
         Ok(())
     }
 
     pub fn update_balance_burn(&mut self, amount: u64) -> Result<()> {
-        self.total_amount = self.total_amount.checked_sub(amount).ok_or(PolicyEngineErrors::BalanceUnderflow)?;
+        self.total_amount = self
+            .total_amount
+            .checked_sub(amount)
+            .ok_or(PolicyEngineErrors::BalanceUnderflow)?;
         Ok(())
     }
 
-    pub fn add_lock(&mut self, amount: u64, release_time: i64, reason: u64, reason_string: String) -> Result<()> {
+    pub fn add_lock(
+        &mut self,
+        amount: u64,
+        release_time: i64,
+        reason: u64,
+        reason_string: String,
+    ) -> Result<()> {
         self.locks.push(Lock {
             amount,
             release_time,
@@ -116,14 +127,20 @@ impl TrackerAccount {
         Ok(self.total_amount - u64::min(locked_amount, self.total_amount))
     }
 
-    pub fn get_compliance_transferable_balance(&self, current_timestamp: i64, lock_time: i64, transferrable_amount: u64) -> Result<u64> {
+    pub fn get_compliance_transferable_balance(
+        &self,
+        current_timestamp: i64,
+        lock_time: i64,
+        transferrable_amount: u64,
+    ) -> Result<u64> {
         let mut locked_amount: u64 = 0;
-        for issuance in self.issuances.iter() {            
-            if lock_time > current_timestamp || issuance.issue_time > (current_timestamp - lock_time) {
+        for issuance in self.issuances.iter() {
+            if lock_time > current_timestamp
+                || issuance.issue_time > (current_timestamp - lock_time)
+            {
                 locked_amount += issuance.amount;
             }
         }
         Ok(transferrable_amount - u64::min(locked_amount, transferrable_amount))
     }
-
 }

@@ -16,11 +16,11 @@ pub const US_COMPLIANCE_LEVEL: u8 = 11;
 
 pub fn get_custom_error(error_code: u8, fallback_error: PolicyEngineErrors) -> Result<()> {
     match error_code {
-        50 => return Err(PolicyEngineErrors::ForceAccredited.into()),
-        51 => return Err(PolicyEngineErrors::ForceAccreditedUS.into()),
-        52 => return Err(PolicyEngineErrors::TokenPaused.into()),
-        53 => return Err(PolicyEngineErrors::InvestorFullyLocked.into()),
-        _ => return Err(fallback_error.into())
+        50 => Err(PolicyEngineErrors::ForceAccredited.into()),
+        51 => Err(PolicyEngineErrors::ForceAccreditedUS.into()),
+        52 => Err(PolicyEngineErrors::TokenPaused.into()),
+        53 => Err(PolicyEngineErrors::InvestorFullyLocked.into()),
+        _ => Err(fallback_error.into()),
     }
 }
 

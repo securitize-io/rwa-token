@@ -1,22 +1,31 @@
+use super::{CapsConfig, ThrottleConfig, ThrottleState};
 use anchor_lang::prelude::*;
 
-#[account()]
-#[derive(InitSpace)]
+// Account traits live in legacy_asset_controller so V1 accounts retain their wire layout.
+// Anchor's serde derives still generate the V2 Borsh schema and IDL.
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace, Debug, PartialEq, Eq)]
 pub struct AssetControllerAccount {
     pub version: u8,
     /// mint pubkey
     pub asset_mint: Pubkey,
     /// authority has the ability to seize, freeze token accounts, etc.
     pub authority: Pubkey,
+    pub caps: CapsConfig,
+    pub throttle: ThrottleConfig,
+    pub state: ThrottleState,
 }
 
 impl AssetControllerAccount {
-    pub const VERSION: u8 = 1;
+    pub const LEGACY_VERSION: u8 = 1;
+    pub const VERSION: u8 = 2;
     pub fn new(asset_mint: Pubkey, authority: Pubkey) -> Self {
         Self {
             asset_mint,
             authority,
             version: Self::VERSION,
+            caps: CapsConfig::default(),
+            throttle: ThrottleConfig::default(),
+            state: ThrottleState::default(),
         }
     }
     pub fn get_pda(asset_mint: Pubkey) -> Pubkey {

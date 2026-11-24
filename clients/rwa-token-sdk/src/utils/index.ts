@@ -1,4 +1,4 @@
-import { AnchorProvider } from "@coral-xyz/anchor";
+import { AnchorProvider } from "@anchor-lang/core";
 import {
 	Connection, type Keypair, type TransactionInstruction,
 } from "@solana/web3.js";

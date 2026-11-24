@@ -1,4 +1,6 @@
-use crate::{cpi_enforce_policy_on_levels_change, state::*, RemoveLevelsFromIdentityEvent, POLICY_ENGINE_ID};
+use crate::{
+    cpi_enforce_policy_on_levels_change, state::*, RemoveLevelsFromIdentityEvent, POLICY_ENGINE_ID,
+};
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
@@ -45,7 +47,9 @@ pub fn handler(
 
     let count = levels.len();
 
-    ctx.accounts.identity_account.remove_levels(levels.clone())?;
+    ctx.accounts
+        .identity_account
+        .remove_levels(levels.clone())?;
     let previous_levels = ctx.accounts.identity_account.levels.clone();
 
     cpi_enforce_policy_on_levels_change(
@@ -61,16 +65,15 @@ pub fn handler(
         &[&signer_seeds[..]],
     )?;
 
-    ctx.accounts.identity_account.to_account_info().realloc(
+    ctx.accounts.identity_account.to_account_info().resize(
         ctx.accounts.identity_account.to_account_info().data_len()
             - IdentityLevel::INIT_SPACE * count,
-        false,
     )?;
 
     emit_cpi!(RemoveLevelsFromIdentityEvent {
         identity: ctx.accounts.identity_account.key(),
         mint: ctx.accounts.asset_mint.key(),
-        levels: levels,
+        levels,
         sender: ctx.accounts.payer.key(),
     });
 

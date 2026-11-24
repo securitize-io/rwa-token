@@ -47,11 +47,8 @@ impl<'info> UpdateAssetMetadata<'info> {
             metadata: self.asset_mint.to_account_info(), // metadata account is the mint, since data is stored in mint
             update_authority: self.asset_controller.to_account_info(),
         };
-        let cpi_ctx = CpiContext::new_with_signer(
-            self.token_program.to_account_info(),
-            cpi_accounts,
-            signer_seeds,
-        );
+        let cpi_ctx =
+            CpiContext::new_with_signer(self.token_program.key(), cpi_accounts, signer_seeds);
         token_metadata_update_field(cpi_ctx, field, value)?;
         Ok(())
     }

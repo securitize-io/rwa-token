@@ -28,9 +28,12 @@ pub fn handler(
     custom_error: u8,
 ) -> Result<()> {
     let policy_account_address = ctx.accounts.policy_engine.key();
-    ctx.accounts
-        .policy_engine
-        .attach(policy_account_address, policy_type.clone(), identity_filter.clone(), custom_error)?;
+    ctx.accounts.policy_engine.attach(
+        policy_account_address,
+        policy_type.clone(),
+        identity_filter.clone(),
+        custom_error,
+    )?;
 
     emit_cpi!(AttachPolicyEvent {
         mint: ctx.accounts.policy_engine.asset_mint,

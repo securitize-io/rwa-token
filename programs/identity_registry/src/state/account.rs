@@ -45,7 +45,7 @@ impl IdentityAccount {
         }
     }
 
-    pub fn add_levels(&mut self, levels: &Vec<u8>, expiries: &Vec<i64>) -> Result<()> {
+    pub fn add_levels(&mut self, levels: &[u8], expiries: &[i64]) -> Result<()> {
         for i in 0..levels.len() {
             if levels[i] == 0 {
                 return Err(IdentityRegistryErrors::InvalidLevel.into());

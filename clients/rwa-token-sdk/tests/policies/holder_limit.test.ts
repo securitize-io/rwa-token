@@ -1,4 +1,4 @@
-import { AnchorProvider, BN, Wallet } from "@coral-xyz/anchor";
+import { AnchorProvider, BN, Wallet } from "@anchor-lang/core";
 import {
 	ChangeCountersArgs,
 	getPolicyEngineAccount,
@@ -202,7 +202,7 @@ describe("test additional policies", async () => {
 				decimals,
 				createTa: true,
 			}, rwaClient.provider);
-            
+
 			const txnId = await sendAndConfirmTransaction(
 				setup.provider.connection,
 				new Transaction().add(...transferTokensIxs),
@@ -259,7 +259,7 @@ describe("test additional policies", async () => {
 				[setup.user2Kp],
 			);
 			expect(txnId).toBeTruthy();
-		});	
+		});
 
 		test("attempt to transfer back exceeding lower limit", async () => {
 			const transferTokensIxs = await getTransferTokensIxs({

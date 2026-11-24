@@ -31,11 +31,7 @@ impl<'info> ThawTokenAccount<'info> {
             authority: self.asset_controller.to_account_info(),
             account: self.token_account.to_account_info(),
         };
-        let cpi_ctx = CpiContext::new_with_signer(
-            self.token_program.to_account_info(),
-            accounts,
-            signer_seeds,
-        );
+        let cpi_ctx = CpiContext::new_with_signer(self.token_program.key(), accounts, signer_seeds);
         thaw_account(cpi_ctx)?;
         Ok(())
     }

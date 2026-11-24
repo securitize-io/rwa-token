@@ -25,7 +25,10 @@ pub fn handler(
         PolicyEngineErrors::InvalidInstructionData
     );
 
-    let previous_mapping = (&mapping_source).iter().map(|source| ctx.accounts.policy_engine.mapping[*source as usize]).collect::<Vec<_>>();
+    let previous_mapping = mapping_source
+        .iter()
+        .map(|source| ctx.accounts.policy_engine.mapping[*source as usize])
+        .collect::<Vec<_>>();
 
     ctx.accounts
         .policy_engine

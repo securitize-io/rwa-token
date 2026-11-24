@@ -1,9 +1,9 @@
-import { type Idl, Program, type Provider, utils } from "@coral-xyz/anchor";
+import { type Idl, Program, type Provider, utils } from "@anchor-lang/core";
 import { PublicKey } from "@solana/web3.js";
 import { type PolicyEngineIdlTypes } from "../programs/types";
 import { getIdentityAccountPda } from "../identity-registry";
 
-import * as PolicyEngineIdl from "../programs/idls/PolicyEngine.json";
+import * as PolicyEngineIdl from "../programs/idls/policy_engine.json";
 
 /** Program address for the policy engine program. */
 export const policyEngineProgramId = new PublicKey(
@@ -40,8 +40,12 @@ export const getPolicyEnginePda = (assetMint: string) =>
  * @returns The asset controller's tracker pda.
  */
 export const getTrackerAccountPda = (assetMint: string, owner: string) =>
+	getTrackerAccountPdaFromIdentity(assetMint, getIdentityAccountPda(assetMint, owner));
+
+/** Derive a tracker when the identity PDA is already known, without an extra RPC lookup. */
+export const getTrackerAccountPdaFromIdentity = (assetMint: string, identityAccount: PublicKey) =>
 	PublicKey.findProgramAddressSync(
-		[new PublicKey(assetMint).toBuffer(), getIdentityAccountPda(assetMint, owner).toBuffer()],
+		[new PublicKey(assetMint).toBuffer(), identityAccount.toBuffer()],
 		policyEngineProgramId
 	)[0];
 

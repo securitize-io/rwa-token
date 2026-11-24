@@ -45,7 +45,7 @@ pub fn handler(
         amount,
         release_timestamp,
         reason,
-        reason_string: reason_string,
+        reason_string,
         identity: ctx.accounts.identity_account.key(),
     });
 

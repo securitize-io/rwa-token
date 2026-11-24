@@ -1,13 +1,13 @@
 
-import { AnchorProvider, BN, Wallet } from "@coral-xyz/anchor";
+import { AnchorProvider, BN, Wallet } from "@anchor-lang/core";
 import {
-	getPolicyEnginePda, getPolicyEngineProgram, 
-	getTrackerAccount, 
+
+	getTrackerAccount,
 	RwaClient,
 } from "../src";
 import { setupTests } from "./setup";
 import { ConfirmOptions, Connection, Transaction, sendAndConfirmTransaction } from "@solana/web3.js";
-import { expect, test, describe } from "vitest";
+import { beforeAll, expect, test, describe } from "vitest";
 import { Config } from "../src/classes/types";
 
 describe("issuance policies", async () => {
@@ -17,7 +17,7 @@ describe("issuance policies", async () => {
 
 	const decimals = 2;
 
-	test("setup provider", async () => {
+	beforeAll(() => {
 		const connectionUrl = process.env.RPC_URL ?? "http://localhost:8899";
 		const connection = new Connection(connectionUrl, "processed");
 
@@ -60,7 +60,7 @@ describe("issuance policies", async () => {
 			payer: setup.payer.toString(),
 			assetMint: mint,
 			authority: setup.authority.toString(),
-			
+
 			identityFilter: {
 				simple: [ {
 					tuple: [
@@ -71,7 +71,7 @@ describe("issuance policies", async () => {
 						},
 						{
 							or: {}
-						}, 
+						},
 						{
 							target: {bothOr: {}},
 							mode: {include: {}},
@@ -93,7 +93,7 @@ describe("issuance policies", async () => {
 			payer: setup.payer.toString(),
 			assetMint: mint,
 			authority: setup.authority.toString(),
-			
+
 			identityFilter: {
 				simple: [ {
 					single: [
@@ -244,7 +244,7 @@ describe("issuance policies", async () => {
 		const txnId = await sendAndConfirmTransaction(setup.provider.connection, new Transaction().add(...changeIssuancePolicies.ixs), [setup.payerKp, setup.authorityKp, ...changeIssuancePolicies.signers]);
 		expect(txnId).toBeTruthy();
 	});
-	
+
 	test("fail to issue tokens after max supply reached", async () => {
 		const issueTokens = await rwaClient.assetController.issueTokenIxns({
 			authority: setup.authority.toString(),
@@ -254,7 +254,7 @@ describe("issuance policies", async () => {
 			amount: new BN(1000000),
 			timestamp: new BN(Date.now() / 1000 + 1000),
 		});
-		expect(sendAndConfirmTransaction(setup.provider.connection, new Transaction().add(...issueTokens), [setup.payerKp, setup.authorityKp])).rejects.toThrowError();
+		await expect(sendAndConfirmTransaction(setup.provider.connection, new Transaction().add(...issueTokens), [setup.payerKp, setup.authorityKp])).rejects.toThrowError();
 	});
 
 });

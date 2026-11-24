@@ -34,7 +34,7 @@ pub struct RevokeIdentityAccount<'info> {
         has_one = identity_account,
     )]
     pub wallet_identity: Box<Account<'info, WalletIdentity>>,
-    
+
     /// CHECK: hardcoded address check
     #[account(address = POLICY_ENGINE_ID)]
     pub policy_engine_program: UncheckedAccount<'info>,
@@ -46,7 +46,6 @@ pub struct RevokeIdentityAccount<'info> {
 }
 
 pub fn handler(ctx: Context<RevokeIdentityAccount>, _owner: Pubkey) -> Result<()> {
-    
     let signer_seeds = [
         &ctx.accounts.asset_mint.key().to_bytes()[..],
         &[ctx.accounts.identity_registry.bump][..],
@@ -71,4 +70,3 @@ pub fn handler(ctx: Context<RevokeIdentityAccount>, _owner: Pubkey) -> Result<()
     });
     Ok(())
 }
-

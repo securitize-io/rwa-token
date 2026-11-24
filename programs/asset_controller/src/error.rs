@@ -28,4 +28,36 @@ pub enum AssetControllerErrors {
     InvalidIdentityAccounts,
     #[msg("Invalid authority")]
     InvalidAuthority,
+    #[msg("Invalid mint controls configuration")]
+    InvalidMintControlsConfig,
+    #[msg("Mint controls configuration is unchanged")]
+    MintControlsUnchanged,
+    #[msg("Mint controls are disabled")]
+    MintControlsDisabled,
+    #[msg("Amount exceeds the single-operation ceiling")]
+    OperationCapExceeded,
+    #[msg("Amount exceeds the cumulative window cap")]
+    WindowCapExceeded,
+    #[msg("Operation amount requires a timelock")]
+    AmountRequiresTimelock,
+    #[msg("Operation amount does not require a timelock")]
+    AmountDoesNotRequireTimelock,
+    #[msg("Pending operation amount must be positive")]
+    InvalidOperationAmount,
+    #[msg("Mint controls arithmetic overflow")]
+    MintControlsArithmeticOverflow,
+    #[msg("Pending operation is not yet effective")]
+    PendingOperationNotEffective,
+    #[msg("Pending operation has expired")]
+    PendingOperationExpired,
+    #[msg("Pending operation has not expired")]
+    PendingOperationNotExpired,
+    #[msg("Pending operation does not match the requested operation")]
+    InvalidPendingOperation,
+    #[msg("Invalid legacy asset controller")]
+    InvalidLegacyAssetController,
+    #[msg("Burn reason exceeds 256 UTF-8 bytes")]
+    BurnReasonTooLong,
+    #[msg("Migrate the asset controller to V2 before using mint/burn controls")]
+    AssetControllerMigrationRequired,
 }

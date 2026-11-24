@@ -1,4 +1,4 @@
-import { AnchorProvider, BN, Wallet } from "@coral-xyz/anchor";
+import { AnchorProvider, BN, Wallet } from "@anchor-lang/core";
 import {
 	getSetupUserIxs,
 	getTrackerAccount,
@@ -13,7 +13,7 @@ import {
 	Transaction,
 	sendAndConfirmTransaction,
 } from "@solana/web3.js";
-import { expect, test, describe } from "vitest";
+import { beforeAll, expect, test, describe } from "vitest";
 import { type Config } from "../src/classes/types";
 import { RwaClient } from "../src/classes";
 
@@ -24,7 +24,7 @@ describe("counter tests", async () => {
 
 	const decimals = 2;
 
-	test("setup provider", async () => {
+	beforeAll(() => {
 		const connectionUrl = process.env.RPC_URL ?? "http://localhost:8899";
 		const connection = new Connection(connectionUrl, "processed");
 
@@ -180,10 +180,10 @@ describe("counter tests", async () => {
 							target: {receiver: {}},
 							mode: {include: {}},
 							level: {countryMapping: [10]},
-						}, 
+						},
 						{
 							and: {}
-						}, 
+						},
 						{
 							target: {receiver: {}},
 							mode: {include: {}},
@@ -200,10 +200,10 @@ describe("counter tests", async () => {
 							target: {receiver: {}},
 							mode: {include: {}},
 							level: {countryMapping: [10]},
-						}, 
+						},
 						{
 							and: {}
-						}, 
+						},
 						{
 							target: {receiver: {}},
 							mode: {exclude: {}},
@@ -341,7 +341,7 @@ describe("counter tests", async () => {
 		expect(policyAccount?.counters[4].value.toNumber()).toBe(1);
 		expect(policyAccount?.counters[5].value.toNumber()).toBe(2);
 	});
-	
+
 	test("issue tokens user4", async () => {
 		const issueArgs: IssueTokenArgs = {
 			authority: setup.authority.toString(),
@@ -396,7 +396,7 @@ describe("counter tests", async () => {
 		expect(policyAccount?.counters[5].value.toNumber()).toBe(3);
 	});
 
-	
+
 	test("remove counter", async () => {
 		const policyAccountBefore = await getPolicyEngineAccount(mint, rwaClient.provider);
 		expect(policyAccountBefore?.counters.length).toBe(6);
@@ -422,7 +422,7 @@ describe("counter tests", async () => {
 		expect(policyAccount?.counters.length).toBe(5);
 		expect(policyAccount?.counters[4].id).toBe(4);
 	});
-	
+
 	test("fail to add duplicate counter id", async () => {
 		const counters = await rwaClient.policyEngine.changeCounters({
 			authority: setup.authority.toString(),
@@ -444,13 +444,13 @@ describe("counter tests", async () => {
 			removedCounters: Buffer.from([4]),
 		});
 
-		expect(sendAndConfirmTransaction(
+		await expect(sendAndConfirmTransaction(
 			rwaClient.provider.connection,
 			new Transaction().add(...counters.ixs),
 			[setup.payerKp, setup.authorityKp]
 		)).rejects.toThrow(/CounterIdAlreadyExists/);
 	});
-	
+
 	test("fail to add duplicate counter id from input", async () => {
 		const counters = await rwaClient.policyEngine.changeCounters({
 			authority: setup.authority.toString(),
@@ -484,14 +484,14 @@ describe("counter tests", async () => {
 			removedCounters: Buffer.from([4]),
 		});
 
-		expect(sendAndConfirmTransaction(
+		await expect(sendAndConfirmTransaction(
 			rwaClient.provider.connection,
 			new Transaction().add(...counters.ixs),
 			[setup.payerKp, setup.authorityKp]
 		)).rejects.toThrow(/CounterIdAlreadyExists/);
 	});
 
-	
+
 	test("fail to remove non existing counter id", async () => {
 		const counters = await rwaClient.policyEngine.changeCounters({
 			authority: setup.authority.toString(),
@@ -501,7 +501,7 @@ describe("counter tests", async () => {
 			removedCounters: Buffer.from([40]),
 		});
 
-		expect(sendAndConfirmTransaction(
+		await expect(sendAndConfirmTransaction(
 			rwaClient.provider.connection,
 			new Transaction().add(...counters.ixs),
 			[setup.payerKp, setup.authorityKp]

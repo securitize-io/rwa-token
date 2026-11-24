@@ -1,12 +1,12 @@
 
-import { AnchorProvider, BN, Wallet } from "@coral-xyz/anchor";
+import { AnchorProvider, BN, Wallet } from "@anchor-lang/core";
 import {
-	getPolicyEnginePda, getPolicyEngineProgram, getTransferTokensIxs, 
+	 getTransferTokensIxs,
 	RwaClient,
 } from "../src";
 import { setupTests } from "./setup";
 import { ConfirmOptions, Connection, Transaction, sendAndConfirmTransaction } from "@solana/web3.js";
-import { expect, test, describe } from "vitest";
+import { beforeAll, expect, test, describe } from "vitest";
 import { Config } from "../src/classes/types";
 
 describe("test policy setup", async () => {
@@ -16,7 +16,7 @@ describe("test policy setup", async () => {
 
 	const decimals = 2;
 
-	test("setup provider", async () => {
+	beforeAll(() => {
 		const connectionUrl = process.env.RPC_URL ?? "http://localhost:8899";
 		const connection = new Connection(connectionUrl, "processed");
 
@@ -59,7 +59,7 @@ describe("test policy setup", async () => {
 			payer: setup.payer.toString(),
 			assetMint: mint,
 			authority: setup.authority.toString(),
-			
+
 			identityFilter: {
 				simple: [ {
 					tuple: [
@@ -70,7 +70,7 @@ describe("test policy setup", async () => {
 						},
 						{
 							or: {}
-						}, 
+						},
 						{
 							target: {bothOr: {}},
 							mode: {include: {}},
@@ -92,7 +92,7 @@ describe("test policy setup", async () => {
 			payer: setup.payer.toString(),
 			assetMint: mint,
 			authority: setup.authority.toString(),
-			
+
 			identityFilter: {
 				simple: [ {
 					single: [

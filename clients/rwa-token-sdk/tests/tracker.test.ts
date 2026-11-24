@@ -1,6 +1,6 @@
-import { AnchorProvider, BN, Wallet } from "@coral-xyz/anchor";
+import { AnchorProvider, BN, Wallet } from "@anchor-lang/core";
 import {
-	type AttachPolicyArgs,
+
 	getTrackerAccount,
 	type IssueTokenArgs,
 	type SetupUserArgs,
@@ -13,7 +13,7 @@ import {
 	Transaction,
 	sendAndConfirmTransaction,
 } from "@solana/web3.js";
-import { expect, test, describe } from "vitest";
+import { beforeAll, expect, test, describe } from "vitest";
 import { type Config } from "../src/classes/types";
 import { RwaClient } from "../src/classes";
 
@@ -23,7 +23,7 @@ describe("test suite to test tracker account is being updated correctly on trans
 	const setup = await setupTests();
 	const decimals = 9;
 
-	test("setup provider", async () => {
+	beforeAll(() => {
 		const connectionUrl = process.env.RPC_URL ?? "http://localhost:8899";
 		const connection = new Connection(connectionUrl, "processed");
 

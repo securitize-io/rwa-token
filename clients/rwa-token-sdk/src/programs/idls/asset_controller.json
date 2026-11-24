@@ -8,6 +8,100 @@
   },
   "instructions": [
     {
+      "name": "cancel_pending",
+      "discriminator": [
+        74,
+        87,
+        109,
+        242,
+        64,
+        192,
+        151,
+        71
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "asset_controller"
+          ]
+        },
+        {
+          "name": "asset_mint",
+          "relations": [
+            "asset_controller",
+            "pending_operation"
+          ]
+        },
+        {
+          "name": "asset_controller",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "asset_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "rent_payer",
+          "writable": true
+        },
+        {
+          "name": "pending_operation",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  111,
+                  112,
+                  101,
+                  114,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "asset_mint"
+              },
+              {
+                "kind": "account",
+                "path": "pending_operation.id",
+                "account": "PendingOperation"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "create_asset_controller",
       "docs": [
         "create an rwa asset"
@@ -77,33 +171,7 @@
           "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -167,33 +235,7 @@
           "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -314,33 +356,215 @@
           "address": "11111111111111111111111111111111"
         },
         {
-          "name": "event_authority",
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "execute_pending",
+      "discriminator": [
+        207,
+        36,
+        5,
+        220,
+        230,
+        106,
+        57,
+        181
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "asset_controller"
+          ]
+        },
+        {
+          "name": "asset_mint",
+          "writable": true,
+          "relations": [
+            "asset_controller",
+            "identity_registry",
+            "tracker_account",
+            "policy_engine"
+          ]
+        },
+        {
+          "name": "asset_controller",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "asset_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "wallet"
+        },
+        {
+          "name": "token_account",
+          "writable": true
+        },
+        {
+          "name": "identity_registry",
+          "relations": [
+            "identity_account"
+          ]
+        },
+        {
+          "name": "identity_account",
+          "relations": [
+            "tracker_account",
+            "wallet_identity_account"
+          ]
+        },
+        {
+          "name": "tracker_account",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "policy_engine_program",
+          "address": "FsE8mCJyvgMzqJbfHbJQm3iuf3cRZC6n2vZi1Q8rQCy2"
+        },
+        {
+          "name": "policy_engine",
+          "writable": true
+        },
+        {
+          "name": "wallet_identity_account"
+        },
+        {
+          "name": "rent_payer",
+          "writable": true
+        },
+        {
+          "name": "pending_operation",
+          "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
                 "value": [
-                  95,
-                  95,
-                  101,
-                  118,
+                  112,
                   101,
                   110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
+                  100,
                   105,
+                  110,
+                  103,
+                  95,
+                  111,
+                  112,
+                  101,
+                  114,
+                  97,
                   116,
-                  121
+                  105,
+                  111,
+                  110
                 ]
+              },
+              {
+                "kind": "account",
+                "path": "asset_mint"
+              },
+              {
+                "kind": "account",
+                "path": "pending_operation.id",
+                "account": "PendingOperation"
               }
             ]
           }
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "expire_pending",
+      "discriminator": [
+        70,
+        169,
+        9,
+        55,
+        182,
+        166,
+        196,
+        204
+      ],
+      "accounts": [
+        {
+          "name": "rent_payer",
+          "writable": true
+        },
+        {
+          "name": "pending_operation",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  111,
+                  112,
+                  101,
+                  114,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pending_operation.asset_mint",
+                "account": "PendingOperation"
+              },
+              {
+                "kind": "account",
+                "path": "pending_operation.id",
+                "account": "PendingOperation"
+              }
+            ]
+          }
+        },
+        {
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -417,19 +641,24 @@
         },
         {
           "name": "authority",
-          "writable": true,
-          "signer": true
+          "signer": true,
+          "relations": [
+            "asset_controller"
+          ]
         },
         {
           "name": "asset_mint",
           "writable": true,
           "relations": [
+            "asset_controller",
             "identity_registry",
-            "tracker_account"
+            "tracker_account",
+            "policy_engine"
           ]
         },
         {
           "name": "asset_controller",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -508,6 +737,7 @@
         {
           "name": "identity_account",
           "relations": [
+            "tracker_account",
             "wallet_identity_account"
           ]
         },
@@ -539,33 +769,7 @@
           "name": "wallet_identity_account"
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -579,6 +783,322 @@
         {
           "name": "issuance_timestamp",
           "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "migrate_asset_controller",
+      "discriminator": [
+        96,
+        118,
+        61,
+        174,
+        136,
+        235,
+        144,
+        68
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "asset_controller"
+          ]
+        },
+        {
+          "name": "asset_mint",
+          "relations": [
+            "asset_controller"
+          ]
+        },
+        {
+          "name": "asset_controller",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "asset_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "propose_burn",
+      "discriminator": [
+        107,
+        126,
+        69,
+        98,
+        100,
+        37,
+        148,
+        192
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "asset_controller"
+          ]
+        },
+        {
+          "name": "asset_mint",
+          "relations": [
+            "asset_controller",
+            "identity_registry"
+          ]
+        },
+        {
+          "name": "asset_controller",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "asset_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "wallet"
+        },
+        {
+          "name": "token_account"
+        },
+        {
+          "name": "identity_registry",
+          "relations": [
+            "identity_account"
+          ]
+        },
+        {
+          "name": "identity_account",
+          "relations": [
+            "wallet_identity_account"
+          ]
+        },
+        {
+          "name": "wallet_identity_account"
+        },
+        {
+          "name": "pending_operation",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  111,
+                  112,
+                  101,
+                  114,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "asset_mint"
+              },
+              {
+                "kind": "arg",
+                "path": "request.id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "request",
+          "type": {
+            "defined": {
+              "name": "BurnRequest"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "propose_mint",
+      "discriminator": [
+        57,
+        216,
+        81,
+        105,
+        92,
+        217,
+        84,
+        128
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "asset_controller"
+          ]
+        },
+        {
+          "name": "asset_mint",
+          "relations": [
+            "asset_controller",
+            "identity_registry"
+          ]
+        },
+        {
+          "name": "asset_controller",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "asset_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "wallet"
+        },
+        {
+          "name": "token_account"
+        },
+        {
+          "name": "identity_registry",
+          "relations": [
+            "identity_account"
+          ]
+        },
+        {
+          "name": "identity_account",
+          "relations": [
+            "wallet_identity_account"
+          ]
+        },
+        {
+          "name": "wallet_identity_account"
+        },
+        {
+          "name": "pending_operation",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  111,
+                  112,
+                  101,
+                  114,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "asset_mint"
+              },
+              {
+                "kind": "arg",
+                "path": "request.id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "request",
+          "type": {
+            "defined": {
+              "name": "MintRequest"
+            }
+          }
         }
       ]
     },
@@ -600,19 +1120,23 @@
       "accounts": [
         {
           "name": "authority",
-          "writable": true,
-          "signer": true
+          "signer": true,
+          "relations": [
+            "asset_controller"
+          ]
         },
         {
           "name": "asset_mint",
           "writable": true,
           "relations": [
+            "asset_controller",
             "identity_registry",
             "tracker_account"
           ]
         },
         {
           "name": "asset_controller",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -635,6 +1159,7 @@
         {
           "name": "identity_account",
           "relations": [
+            "tracker_account",
             "wallet_identity_account"
           ]
         },
@@ -666,33 +1191,7 @@
           "address": "11111111111111111111111111111111"
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -757,33 +1256,7 @@
           "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -797,6 +1270,126 @@
         {
           "name": "reason",
           "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "set_caps_config",
+      "discriminator": [
+        216,
+        4,
+        112,
+        211,
+        176,
+        17,
+        227,
+        229
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "asset_controller"
+          ]
+        },
+        {
+          "name": "asset_mint",
+          "relations": [
+            "asset_controller"
+          ]
+        },
+        {
+          "name": "asset_controller",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "asset_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "caps",
+          "type": {
+            "defined": {
+              "name": "CapsConfig"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "set_throttle_config",
+      "discriminator": [
+        174,
+        119,
+        174,
+        249,
+        71,
+        43,
+        246,
+        174
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "asset_controller"
+          ]
+        },
+        {
+          "name": "asset_mint",
+          "relations": [
+            "asset_controller"
+          ]
+        },
+        {
+          "name": "asset_controller",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "asset_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "throttle",
+          "type": {
+            "defined": {
+              "name": "ThrottleConfig"
+            }
+          }
         }
       ]
     },
@@ -896,33 +1489,7 @@
           "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -955,72 +1522,33 @@
       ]
     },
     {
-      "name": "IdentityAccount",
-      "discriminator": [
-        194,
-        90,
-        181,
-        160,
-        182,
-        206,
-        116,
-        158
-      ]
-    },
-    {
-      "name": "IdentityRegistryAccount",
-      "discriminator": [
-        154,
-        254,
-        118,
-        4,
-        115,
-        36,
-        125,
-        78
-      ]
-    },
-    {
-      "name": "PolicyEngineAccount",
+      "name": "PendingOperation",
       "discriminator": [
         124,
-        85,
-        205,
-        80,
-        2,
-        18,
-        26,
-        45
-      ]
-    },
-    {
-      "name": "TrackerAccount",
-      "discriminator": [
-        83,
-        95,
-        166,
-        148,
-        57,
-        30,
-        90,
-        210
-      ]
-    },
-    {
-      "name": "WalletIdentity",
-      "discriminator": [
-        101,
-        142,
-        55,
-        104,
-        168,
-        77,
-        57,
-        85
+        146,
+        84,
+        123,
+        121,
+        210,
+        217,
+        118
       ]
     }
   ],
   "events": [
+    {
+      "name": "AssetControllerMigrated",
+      "discriminator": [
+        98,
+        46,
+        167,
+        50,
+        30,
+        181,
+        16,
+        139
+      ]
+    },
     {
       "name": "AssetMetadataEvent",
       "discriminator": [
@@ -1045,6 +1573,19 @@
         124,
         238,
         250
+      ]
+    },
+    {
+      "name": "CapsUpdated",
+      "discriminator": [
+        147,
+        181,
+        117,
+        249,
+        72,
+        147,
+        156,
+        255
       ]
     },
     {
@@ -1074,6 +1615,58 @@
       ]
     },
     {
+      "name": "OperationCancelled",
+      "discriminator": [
+        35,
+        79,
+        124,
+        242,
+        195,
+        248,
+        114,
+        0
+      ]
+    },
+    {
+      "name": "OperationExecuted",
+      "discriminator": [
+        205,
+        223,
+        227,
+        106,
+        178,
+        86,
+        163,
+        162
+      ]
+    },
+    {
+      "name": "OperationExpired",
+      "discriminator": [
+        105,
+        3,
+        61,
+        154,
+        56,
+        106,
+        8,
+        244
+      ]
+    },
+    {
+      "name": "OperationProposed",
+      "discriminator": [
+        252,
+        68,
+        199,
+        155,
+        10,
+        17,
+        178,
+        206
+      ]
+    },
+    {
       "name": "RevokeEvent",
       "discriminator": [
         87,
@@ -1097,6 +1690,19 @@
         98,
         208,
         78
+      ]
+    },
+    {
+      "name": "ThrottleUpdated",
+      "discriminator": [
+        210,
+        7,
+        158,
+        29,
+        147,
+        253,
+        143,
+        139
       ]
     }
   ],
@@ -1165,6 +1771,86 @@
       "code": 6012,
       "name": "InvalidAuthority",
       "msg": "Invalid authority"
+    },
+    {
+      "code": 6013,
+      "name": "InvalidMintControlsConfig",
+      "msg": "Invalid mint controls configuration"
+    },
+    {
+      "code": 6014,
+      "name": "MintControlsUnchanged",
+      "msg": "Mint controls configuration is unchanged"
+    },
+    {
+      "code": 6015,
+      "name": "MintControlsDisabled",
+      "msg": "Mint controls are disabled"
+    },
+    {
+      "code": 6016,
+      "name": "OperationCapExceeded",
+      "msg": "Amount exceeds the single-operation ceiling"
+    },
+    {
+      "code": 6017,
+      "name": "WindowCapExceeded",
+      "msg": "Amount exceeds the cumulative window cap"
+    },
+    {
+      "code": 6018,
+      "name": "AmountRequiresTimelock",
+      "msg": "Operation amount requires a timelock"
+    },
+    {
+      "code": 6019,
+      "name": "AmountDoesNotRequireTimelock",
+      "msg": "Operation amount does not require a timelock"
+    },
+    {
+      "code": 6020,
+      "name": "InvalidOperationAmount",
+      "msg": "Pending operation amount must be positive"
+    },
+    {
+      "code": 6021,
+      "name": "MintControlsArithmeticOverflow",
+      "msg": "Mint controls arithmetic overflow"
+    },
+    {
+      "code": 6022,
+      "name": "PendingOperationNotEffective",
+      "msg": "Pending operation is not yet effective"
+    },
+    {
+      "code": 6023,
+      "name": "PendingOperationExpired",
+      "msg": "Pending operation has expired"
+    },
+    {
+      "code": 6024,
+      "name": "PendingOperationNotExpired",
+      "msg": "Pending operation has not expired"
+    },
+    {
+      "code": 6025,
+      "name": "InvalidPendingOperation",
+      "msg": "Pending operation does not match the requested operation"
+    },
+    {
+      "code": 6026,
+      "name": "InvalidLegacyAssetController",
+      "msg": "Invalid legacy asset controller"
+    },
+    {
+      "code": 6027,
+      "name": "BurnReasonTooLong",
+      "msg": "Burn reason exceeds 256 UTF-8 bytes"
+    },
+    {
+      "code": 6028,
+      "name": "AssetControllerMigrationRequired",
+      "msg": "Migrate the asset controller to V2 before using mint/burn controls"
     }
   ],
   "types": [
@@ -1190,6 +1876,50 @@
               "authority has the ability to seize, freeze token accounts, etc."
             ],
             "type": "pubkey"
+          },
+          {
+            "name": "caps",
+            "type": {
+              "defined": {
+                "name": "CapsConfig"
+              }
+            }
+          },
+          {
+            "name": "throttle",
+            "type": {
+              "defined": {
+                "name": "ThrottleConfig"
+              }
+            }
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "ThrottleState"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "AssetControllerMigrated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "version",
+            "type": "u8"
           }
         ]
       }
@@ -1250,6 +1980,74 @@
           {
             "name": "mint",
             "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BurnRequest",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "reason",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CapsConfig",
+      "docs": [
+        "Single-instruction ceilings in base units. Zero disables the corresponding cap."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "max_mint_per_tx",
+            "type": "u64"
+          },
+          {
+            "name": "max_burn_per_tx",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CapsUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "caps",
+            "type": {
+              "defined": {
+                "name": "CapsConfig"
+              }
+            }
           }
         ]
       }
@@ -1801,6 +2599,307 @@
       }
     },
     {
+      "name": "MintRequest",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "issuance_timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OperationCancelled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "operation_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "kind",
+            "type": {
+              "defined": {
+                "name": "OperationKind"
+              }
+            }
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OperationData",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Mint",
+            "fields": [
+              {
+                "name": "amount",
+                "type": "u64"
+              },
+              {
+                "name": "issuance_timestamp",
+                "type": "i64"
+              }
+            ]
+          },
+          {
+            "name": "Burn",
+            "fields": [
+              {
+                "name": "amount",
+                "type": "u64"
+              },
+              {
+                "name": "reason",
+                "type": "string"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "OperationExecuted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "operation_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "kind",
+            "type": {
+              "defined": {
+                "name": "OperationKind"
+              }
+            }
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OperationExpired",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "operation_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "kind",
+            "type": {
+              "defined": {
+                "name": "OperationKind"
+              }
+            }
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OperationKind",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Mint"
+          },
+          {
+            "name": "Burn"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OperationProposed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "operation_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "identity_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "data",
+            "type": {
+              "defined": {
+                "name": "OperationData"
+              }
+            }
+          },
+          {
+            "name": "effective_at",
+            "type": "i64"
+          },
+          {
+            "name": "expires_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PendingOperation",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "identity_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "data",
+            "type": {
+              "defined": {
+                "name": "OperationData"
+              }
+            }
+          },
+          {
+            "name": "proposer",
+            "docs": [
+              "Authorized signer; human role attribution belongs to RBAC."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "rent_payer",
+            "type": "pubkey"
+          },
+          {
+            "name": "effective_at",
+            "type": "i64"
+          },
+          {
+            "name": "expires_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
       "name": "Policy",
       "type": {
         "kind": "struct",
@@ -2041,6 +3140,89 @@
           {
             "name": "mint",
             "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ThrottleConfig",
+      "docs": [
+        "Shared tumbling window, mint/burn timelock, and pending-operation expiry."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "enabled",
+            "type": "bool"
+          },
+          {
+            "name": "mint_window_cap",
+            "type": "u64"
+          },
+          {
+            "name": "burn_window_cap",
+            "type": "u64"
+          },
+          {
+            "name": "window_seconds",
+            "type": "i64"
+          },
+          {
+            "name": "large_amount_threshold",
+            "type": "u64"
+          },
+          {
+            "name": "large_amount_delay",
+            "type": "i64"
+          },
+          {
+            "name": "pending_operation_grace_period",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ThrottleState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "window_start",
+            "type": "i64"
+          },
+          {
+            "name": "minted_in_window",
+            "type": "u64"
+          },
+          {
+            "name": "burned_in_window",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ThrottleUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "throttle",
+            "type": {
+              "defined": {
+                "name": "ThrottleConfig"
+              }
+            }
           }
         ]
       }
