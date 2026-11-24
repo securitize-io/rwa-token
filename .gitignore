@@ -1,5 +1,5 @@
 .anchor
-.surfpool/logs/
+.surfpool
 .DS_Store
 target
 **/*.rs.bk
